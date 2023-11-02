@@ -26,8 +26,7 @@ async fn test() -> &'static str {
     "got json response"
 }
 
-#[tokio::main]
-async fn main() {
+async fn start_webserver() {
     use axum::routing::get;
     use axum::response::Redirect;
     use utoipa::OpenApi;
@@ -57,4 +56,9 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+#[tokio::main]
+async fn main() {
+    start_webserver().await;
 }
