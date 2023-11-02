@@ -7,5 +7,8 @@ enum SetStatus {
 }
 
 fn set_status(status: SetStatus) {
-    
+    if cfg!(govee_debug) {
+        // handle debug mode
+        return;
+    }
 }
