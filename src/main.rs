@@ -60,5 +60,6 @@ async fn start_webserver() {
 
 #[tokio::main]
 async fn main() {
-    start_webserver().await;
+    //start_webserver().await;
+    println!("{:?}", util::govee::get_state().await);
 }

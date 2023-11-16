@@ -3,22 +3,35 @@ use crate::res::secrets::govee;
 
 type RGBColor = (u8, u8, u8);
 
-enum SetState {
+pub enum SetState {
     Color(RGBColor),
     Brightness(u8),
     Power(bool)
 }
 
-fn set_state(status: SetState) {
+pub async fn set_state(status: SetState) {
     if cfg!(govee_debug) {
         // TODO handle debug mode
         return;
     }
+    // TODO implement function
+    //util::send_api_request(
+    //    util::HttpMethod::Put,
+    //    url.as_str(),
+    //    Some(vec![("Govee-API-Key", govee::API_KEY), ("Content-Type", "application/json")])
+    //).await;
 }
 
-async fn get_power_state() {
+pub async fn get_state() -> Result<serde_json::Value, &'static str> {
+    if cfg!(govee_debug) {
+        // TODO handle debug mode
+        return Err("cannot run get_state() in debug mode");
+    }
+
     let url = format!("https://developer-api.govee.com/v1/devices/state?device={}&model={}", govee::DEVICE, govee::MODEL);
-    let response = util::send_api_request(url.as_str(), util::HttpMethod::Get).await;
-    println!("{:?}", response.unwrap().text().await);
-    // TODO error handling, parse json response, return result
+    util::send_api_request(
+        util::HttpMethod::Get,
+        url.as_str(),
+        Some(vec![("Govee-API-Key", govee::API_KEY)])
+    ).await
 }
