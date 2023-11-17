@@ -1,17 +1,38 @@
 use crate::util;
 use crate::res::secrets::govee;
+use crate::view::out::govee_debug;
 
 type RGBColor = (u8, u8, u8);
+type Brightness = u8;
+type Power = bool;
 
+#[derive(Debug)]
 pub enum SetState {
     Color(RGBColor),
-    Brightness(u8),
-    Power(bool)
+    Brightness(Brightness),
+    Power(Power)
 }
 
-pub async fn set_state(status: SetState) {
+#[derive(Debug)]
+pub struct GetState {
+    color: RGBColor,
+    brightness: Brightness,
+    power: Power
+}
+
+impl Default for GetState {
+    fn default() -> Self {
+        Self {
+            color: (0, 0, 0),
+            brightness: 100,
+            power: false
+        }
+    }
+}
+
+pub async fn set_state(state: SetState) {
     if cfg!(govee_debug) {
-        // TODO handle debug mode
+        govee_debug::println(format!("setting state: {:?}", state));
         return;
     }
     // TODO implement function
@@ -22,16 +43,30 @@ pub async fn set_state(status: SetState) {
     //).await;
 }
 
-pub async fn get_state() -> Result<serde_json::Value, &'static str> {
+pub async fn get_state() -> GetState {
     if cfg!(govee_debug) {
-        // TODO handle debug mode
-        return Err("cannot run get_state() in debug mode");
+        govee_debug::println(String::from("using default GetState"));
+        return GetState::default();
     }
 
     let url = format!("https://developer-api.govee.com/v1/devices/state?device={}&model={}", govee::DEVICE, govee::MODEL);
-    util::send_api_request(
+    let result = util::send_api_request(
         util::HttpMethod::Get,
         url.as_str(),
         Some(vec![("Govee-API-Key", govee::API_KEY)])
-    ).await
+    ).await;
+
+    let Ok(json) = result else {
+        return GetState::default();
+    };
+
+    // TODO get parameters from json result
+    println!("{:?}", json);
+
+    GetState {
+        // very dependent on govee api!
+        color: (0, 0, 0),
+        brightness: 100,
+        power: false
+    }
 }
