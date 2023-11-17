@@ -3,13 +3,14 @@ use crate::res::secrets::govee;
 use crate::view::out::govee_debug;
 
 pub type RGBColor = (u8, u8, u8);
-/// from 0 to 100
+/// from 1 to 100
 pub type Brightness = u8;
 pub type Power = bool;
 
 #[derive(Debug)]
 pub enum SetState {
     Color(RGBColor),
+    /// from 1 to 100
     Brightness(Brightness),
     Power(Power)
 }
@@ -21,20 +22,14 @@ pub struct GetState {
     power: Power
 }
 
-impl Default for GetState {
-    fn default() -> Self {
-        Self {
-            color: (0, 0, 0),
-            brightness: 100,
-            power: false
-        }
-    }
-}
-
-pub async fn set_state(state: SetState) {
+/// limits brightness from 1 to 100.
+/// returns success.
+/// dependent on govee api.
+/// prints `state` instead of setting it if `cfg!(govee_debug)`.
+pub async fn set_state(state: SetState) -> bool {
     if cfg!(govee_debug) {
-        govee_debug::println(format!("setting state: {:?}", state));
-        return;
+        govee_debug::println(format!("setting state to {:?}", state));
+        return true;
     }
 
     let url = String::from("https://developer-api.govee.com/v1/devices/control");
@@ -51,7 +46,7 @@ pub async fn set_state(state: SetState) {
             "g": color.1,
             "b": color.2,
         }),
-        SetState::Brightness(brightness) => brightness.into(),
+        SetState::Brightness(brightness) => brightness.clamp(1, 100).into(),
         SetState::Power(power) => (if power { "on" } else { "off" }).into()
     };
 
@@ -64,26 +59,31 @@ pub async fn set_state(state: SetState) {
         }
     }).to_string();
 
-    // TODO delete this line
-    println!("sending body: {:?}", body);
-
     let result = util::send_api_request(
         util::HttpMethod::Put(body),
         url.as_str(),
         Some(vec![("Govee-API-Key", govee::API_KEY), ("Content-Type", "application/json")])
     ).await;
 
-    // TODO delete this line
-    println!("{:?}", result);
+    let Ok(json) = result else {
+        return false;
+    };
 
-    // TODO return something?
+    // true if status code is 200
+    json["code"].as_u64().unwrap() == 200
 }
 
-/// uses `GetState::default()` on error
-pub async fn get_state() -> GetState {
+/// dependent on govee api.
+/// returns built-in default `GetState` if `cfg!(govee_debug)`.
+pub async fn get_state() -> Result<GetState, ()> {
     if cfg!(govee_debug) {
-        govee_debug::println(format!("using default GetState: {:?}", GetState::default()));
-        return GetState::default();
+        const DEFAULT: GetState = GetState {
+            color: (0, 0, 255),
+            brightness: 100,
+            power: true
+        };
+        govee_debug::println(format!("using default {:?}", DEFAULT));
+        return Ok(DEFAULT);
     }
 
     let url = format!("https://developer-api.govee.com/v1/devices/state?device={}&model={}", govee::DEVICE, govee::MODEL);
@@ -94,12 +94,11 @@ pub async fn get_state() -> GetState {
     ).await;
 
     let Ok(json) = result else {
-        return GetState::default();
+        return Err(());
     };
 
-    // very dependent on govee api!
     let data = &json["data"]["properties"];
-    GetState {
+    Ok(GetState {
         color: (
             data[3]["color"]["r"].as_u64().unwrap().try_into().unwrap(),
             data[3]["color"]["g"].as_u64().unwrap().try_into().unwrap(),
@@ -107,5 +106,5 @@ pub async fn get_state() -> GetState {
         ),
         brightness: data[2]["brightness"].as_u64().unwrap().try_into().unwrap(),
         power: data[1]["powerState"].as_str().unwrap() == "on"
-    }
+    })
 }

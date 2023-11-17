@@ -61,7 +61,5 @@ async fn start_webserver() {
 
 #[tokio::main]
 async fn main() {
-    //start_webserver().await;
-    use util::govee::*;
-    set_state(SetState::Power(true)).await;
+    start_webserver().await;
 }
