@@ -3,6 +3,7 @@ use crate::res::secrets::govee;
 use crate::view::out::govee_debug;
 
 type RGBColor = (u8, u8, u8);
+/// from 0 to 100
 type Brightness = u8;
 type Power = bool;
 
