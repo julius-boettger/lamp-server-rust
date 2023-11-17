@@ -16,7 +16,7 @@ async fn test() -> &'static str {
 
 /// start webserver. never terminates
 pub async fn start_server() {
-    use crate::res::constants::*;
+    use crate::res::constants::net::*;
     use axum::routing::get;
     use axum::response::Redirect;
     use utoipa::OpenApi;
