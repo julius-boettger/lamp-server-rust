@@ -7,6 +7,7 @@ debug mode:
 
 mod res;
 mod util;
+mod view;
 
 use res::constants::*;
 
