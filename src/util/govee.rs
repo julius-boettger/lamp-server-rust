@@ -31,12 +31,15 @@ impl Default for GetState {
     }
 }
 
+// TODO implement function
 pub async fn set_state(state: SetState) {
     if cfg!(govee_debug) {
         govee_debug::println(format!("setting state: {:?}", state));
         return;
     }
-    // TODO implement function
+
+    // TODO construct json body from state and stringify
+
     //util::send_api_request(
     //    util::HttpMethod::Put,
     //    url.as_str(),

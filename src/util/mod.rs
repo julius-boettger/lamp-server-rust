@@ -30,7 +30,6 @@ pub async fn send_api_request(method: HttpMethod, url: &str, headers: Option<Vec
     
     let result = request.send().await;
     let Ok(response) = result else {
-        // TODO improve error message
         return Err("sending request failed");
     };
 
@@ -38,7 +37,6 @@ pub async fn send_api_request(method: HttpMethod, url: &str, headers: Option<Vec
     if let Ok(json) = json {
         Ok(json)
     } else {
-        // TODO improve error message
         Err("parsing request response json failed")
     }
 }
