@@ -45,7 +45,7 @@ pub async fn set_state(state: SetState) {
 
 pub async fn get_state() -> GetState {
     if cfg!(govee_debug) {
-        govee_debug::println(String::from("using default GetState"));
+        govee_debug::println(format!("using default GetState: {:?}", GetState::default()));
         return GetState::default();
     }
 
