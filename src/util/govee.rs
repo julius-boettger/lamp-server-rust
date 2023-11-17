@@ -64,13 +64,15 @@ pub async fn get_state() -> GetState {
         return GetState::default();
     };
 
-    // TODO get parameters from json result
-    println!("{:?}", json);
-
+    // very dependent on govee api!
+    let data = &json["data"]["properties"];
     GetState {
-        // very dependent on govee api!
-        color: (0, 0, 0),
-        brightness: 100,
-        power: false
+        color: (
+            data[3]["color"]["r"].as_u64().unwrap().try_into().unwrap(),
+            data[3]["color"]["g"].as_u64().unwrap().try_into().unwrap(),
+            data[3]["color"]["b"].as_u64().unwrap().try_into().unwrap()
+        ),
+        brightness: data[2]["brightness"].as_u64().unwrap().try_into().unwrap(),
+        power: data[1]["powerState"].as_str().unwrap() == "on"
     }
 }
