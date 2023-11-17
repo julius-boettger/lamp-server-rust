@@ -1,5 +1,9 @@
 pub mod govee;
-pub enum HttpMethod { Get, Put }
+pub enum HttpMethod {
+    Get,
+    /// contains request body
+    Put(String)
+}
 
 pub fn digest_sha256(string: &str) -> String {
     sha256::digest(string)
@@ -8,8 +12,8 @@ pub fn digest_sha256(string: &str) -> String {
 pub async fn send_api_request(method: HttpMethod, url: &str, headers: Option<Vec<(&str, &str)>>) -> Result<serde_json::Value, &'static str> {
     let client =  reqwest::Client::new();
     let mut request = match method {
-        HttpMethod::Get => client.get(url),
-        HttpMethod::Put => client.put(url)
+        HttpMethod::Get    => client.get(url),
+        HttpMethod::Put(_) => client.put(url)
     };
 
     // set headers (if given)
@@ -20,8 +24,8 @@ pub async fn send_api_request(method: HttpMethod, url: &str, headers: Option<Vec
     }
 
     // set body (if given)
-    if let HttpMethod::Put = method {
-        // TODO set body for request
+    if let HttpMethod::Put(body) = method {
+        request = request.body(body);
     }
     
     let result = request.send().await;
