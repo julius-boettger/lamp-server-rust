@@ -38,15 +38,29 @@ pub async fn set_state(state: SetState) {
         return;
     }
 
-    // TODO construct json body from state and stringify
+    let url = String::from("https://developer-api.govee.com/v1/devices/control");
 
-    //util::send_api_request(
-    //    util::HttpMethod::Put,
-    //    url.as_str(),
-    //    Some(vec![("Govee-API-Key", govee::API_KEY), ("Content-Type", "application/json")])
-    //).await;
+    // TODO use cmd_name and cmd_value from state
+
+    let body = serde_json::json!({
+        "device": govee::DEVICE,
+        "model": govee::MODEL,
+        "cmd": {
+            "name": "turn",
+            "value": "on"
+        }
+    });
+
+    let result = util::send_api_request(
+        util::HttpMethod::Put(body.to_string()),
+        url.as_str(),
+        Some(vec![("Govee-API-Key", govee::API_KEY), ("Content-Type", "application/json")])
+    ).await;
+
+    println!("{:?}", result);
 }
 
+/// uses `GetState::default()` on error
 pub async fn get_state() -> GetState {
     if cfg!(govee_debug) {
         govee_debug::println(format!("using default GetState: {:?}", GetState::default()));
