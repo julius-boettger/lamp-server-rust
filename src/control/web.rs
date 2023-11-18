@@ -1,17 +1,27 @@
+use axum::Json;
+use crate::util::govee;
+
+// TODO return different status code instead of default
 #[utoipa::path(
     get,
-    path = "/test",
+    path = "/state",
     responses((
         status = 200,
-        description = "Send an http GET-request and try to parse the response to json. Return success as string."
+        description = "Get current state of lamp. Returns a default value on error.",
+        body = GetState
     ))
 )]
-async fn test() -> &'static str {
-    let response = reqwest::get("https://httpbin.org/ip").await;
-    if response.is_err() { return "error sending request"; }
-    let json = response.unwrap().json::<std::collections::HashMap<String, String>>().await;
-    if json.is_err() { return "error parsing json"; }
-    "got json response"
+async fn get_state() -> Json<govee::GetState> {
+    let result = govee::get_state().await;
+    if let Ok(state) = result {
+        Json(state)
+    } else {
+        Json(govee::GetState {
+            color: (255, 255, 255),
+            brightness: 100,
+            power: false
+        })
+    }
 }
 
 /// start webserver. never terminates
@@ -25,8 +35,10 @@ pub async fn start_server() {
     #[derive(OpenApi)]
     #[openapi(
         paths(
-            test,
+            // functions with utoipa::path attributes
+            get_state
         ),
+        components(schemas(govee::GetState)),
         tags((name = "lamp-server-rust", description = "API for interacting with my lamp"))
     )]
     struct ApiDoc;
@@ -38,7 +50,7 @@ pub async fn start_server() {
         // temporarily redirect root to swagger ui
         .route("/", get(|| async { Redirect::temporary("/swagger-ui") }))
         // actual api
-        .route("/test", get(test));
+        .route("/state", get(get_state));
 
     let address = std::net::SocketAddr::new(LOCALHOST, PORT);
     println!("starting server on http://{address} ...");

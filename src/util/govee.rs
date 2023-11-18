@@ -3,23 +3,27 @@ use crate::res::secrets::govee;
 use crate::view::out::govee_debug;
 
 pub type RGBColor = (u8, u8, u8);
-/// from 1 to 100
-pub type Brightness = u8;
-pub type Power = bool;
 
 #[derive(Debug)]
 pub enum SetState {
-    Color(RGBColor),
+    Color((u8, u8, u8)),
     /// from 1 to 100
-    Brightness(Brightness),
-    Power(Power)
+    Brightness(u8),
+    Power(bool)
 }
 
-#[derive(Debug)]
+#[derive(
+    Debug,
+    serde::Serialize, // to axum::Json
+    utoipa::ToSchema  // to display in swagger-ui
+)]
 pub struct GetState {
-    color: RGBColor,
-    brightness: Brightness,
-    power: Power
+    // TODO tell swagger-ui that this is an array
+    pub color: (u8, u8, u8),
+    /// from 1 to 100
+    #[schema(minimum = 1, maximum = 100)]
+    pub brightness: u8,
+    pub power: bool
 }
 
 /// limits brightness from 1 to 100.
