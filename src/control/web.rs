@@ -38,8 +38,7 @@ pub async fn start_server() {
             // functions with utoipa::path attributes
             get_state
         ),
-        components(schemas(govee::GetState)),
-        tags((name = "lamp-server-rust", description = "API for interacting with my lamp"))
+        components(schemas(govee::GetState))
     )]
     struct ApiDoc;
 

@@ -18,7 +18,7 @@ pub enum SetState {
     utoipa::ToSchema  // to display in swagger-ui
 )]
 pub struct GetState {
-    // TODO tell swagger-ui that this is an array
+    #[schema(min_items = 3, max_items = 3)]
     pub color: (u8, u8, u8),
     /// from 1 to 100
     #[schema(minimum = 1, maximum = 100)]
