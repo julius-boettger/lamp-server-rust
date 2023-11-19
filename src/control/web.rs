@@ -52,7 +52,7 @@ pub async fn start_server() {
         .route("/state", get(get_state));
 
     let address = std::net::SocketAddr::new(LOCALHOST, PORT);
-    println!("starting server on http://{address} ...");
+    println!("WEB: starting server on http://{address} ...");
     axum::Server::bind(&address)
         .serve(app.into_make_service())
         .await

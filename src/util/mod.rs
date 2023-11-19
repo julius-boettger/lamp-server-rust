@@ -10,10 +10,6 @@ pub fn digest_sha256(string: &str) -> String {
     sha256::digest(string)
 }
 
-pub fn sleep(ms: u64) {
-    std::thread::sleep(std::time::Duration::from_millis(ms));
-}
-
 pub async fn send_api_request(method: HttpMethod, url: &str, headers: Option<Vec<(&str, &str)>>) -> Result<serde_json::Value, &'static str> {
     let client =  reqwest::Client::new();
     let mut request = match method {

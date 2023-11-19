@@ -31,8 +31,11 @@ pub struct GetState {
 /// dependent on govee api.
 /// prints `state` instead of setting it if `cfg!(govee_debug)`.
 pub async fn set_state(state: SetState) -> bool {
+
+    println!("setting state to {:?}", state);
+
     if cfg!(govee_debug) {
-        govee_debug::println(format!("setting state to {:?}", state));
+        govee_debug::println("not really sending anything :)".to_owned());
         return true;
     }
 
@@ -102,7 +105,7 @@ pub async fn get_state() -> Result<GetState, ()> {
     };
 
     let data = &json["data"]["properties"];
-    Ok(GetState {
+    let state = GetState {
         color: (
             data[3]["color"]["r"].as_u64().unwrap().try_into().unwrap(),
             data[3]["color"]["g"].as_u64().unwrap().try_into().unwrap(),
@@ -110,5 +113,8 @@ pub async fn get_state() -> Result<GetState, ()> {
         ),
         brightness: data[2]["brightness"].as_u64().unwrap().try_into().unwrap(),
         power: data[1]["powerState"].as_str().unwrap() == "on"
-    })
+    };
+
+    println!("got state {:?}", state);
+    Ok(state)
 }

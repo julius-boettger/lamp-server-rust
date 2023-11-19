@@ -1,9 +1,9 @@
 #[allow(dead_code)]
 
 pub mod govee {
+    use std::time::Duration;
     // TODO recalculate
-    /// in ms
-    pub const API_REQUEST_INTERVAL: u64 = 8730;
+    pub const API_REQUEST_INTERVAL: Duration = Duration::from_millis(8730);
 }
 
 pub mod net {
