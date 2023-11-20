@@ -2,8 +2,9 @@
 
 pub mod govee {
     use std::time::Duration;
-    // TODO recalculate
-    pub const API_REQUEST_INTERVAL: Duration = Duration::from_millis(8730);
+    /// this is the max api request rate.
+    /// will reach daily rate limit if used more than 16h40min in a single day.
+    pub const API_REQUEST_INTERVAL: Duration = Duration::from_secs(6);
     /// how long a `set_state()` call usually takes
     pub const AVG_SET_STATE_DURATION: Duration = Duration::from_millis(500);
 }
