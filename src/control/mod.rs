@@ -1,9 +1,11 @@
 pub mod web;
+pub mod fn_queue;
 
 use crate::util::govee;
 use crate::res::constants;
 use govee::SetState;
 use std::time::Duration;
+use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
 
 /// never terminates
@@ -27,20 +29,25 @@ pub async fn main_loop() {
     // queue of functions to be executed once at the start of the next loop.
     // all functions will be executed and then removed from the queue, starting from the front.
     // each function has access to govee_queue.
-    let mut function_queue: VecDeque<&dyn Fn(&mut VecDeque<SetState>) -> ()> = VecDeque::new();
+    // confusing type is for thread safety.
+    let mut function_queue: fn_queue::FunctionQueue = Arc::new(Mutex::new(Vec::new()));
 
     // "fire and forget" web server start
-    //tokio::spawn(web::start_server(&mut function_queue));
+    tokio::spawn(web::start_server(
+        Arc::clone(&function_queue)
+    ));
 
     // wait before starting loop to avoid reaching rate limits when restarting frequently
     sleep(API_REQUEST_INTERVAL);
 
     // actual main loop
     loop {
-        // TODO call functions in function_queue
+        fn_queue::call(&mut function_queue, &mut govee_queue);
+
         if !govee_queue.is_empty() {
             govee::set_state(govee_queue.pop_front().unwrap()).await;
         }
+
         println!("----- waiting -----");
         sleep(API_REQUEST_INTERVAL);
     }
