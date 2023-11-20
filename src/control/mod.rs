@@ -30,10 +30,10 @@ pub async fn main_loop() {
     let mut function_queue: VecDeque<&dyn Fn(&mut VecDeque<SetState>) -> ()> = VecDeque::new();
 
     // "fire and forget" web server start
-    tokio::spawn(web::start_server(&mut function_queue));
+    //tokio::spawn(web::start_server(&mut function_queue));
 
-    // DEBUG generate a sunrise
-    generate_sunrise(&mut govee_queue, Duration::from_secs(1 * 60));
+    // wait before starting loop to avoid reaching rate limits when restarting frequently
+    sleep(API_REQUEST_INTERVAL);
 
     // actual main loop
     loop {

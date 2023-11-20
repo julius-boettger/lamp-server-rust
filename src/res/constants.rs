@@ -5,6 +5,7 @@ pub mod govee {
     /// this is the max api request rate.
     /// will reach daily rate limit if used more than 16h40min in a single day.
     pub const API_REQUEST_INTERVAL: Duration = Duration::from_secs(6);
+    // TODO actually measure how long a call usually takes
     /// how long a `set_state()` call usually takes
     pub const AVG_SET_STATE_DURATION: Duration = Duration::from_millis(500);
 }
@@ -15,7 +16,7 @@ pub mod sunrise {
         pub const HUE: f64 = 25.0;
         pub mod saturation {
             pub const START: f64 = 0.8;
-            pub const STOP: f64 = 0.45;
+            pub const STOP: f64 = 0.55;
         }
         pub const VALUE: f64 = 1.0;
     }
