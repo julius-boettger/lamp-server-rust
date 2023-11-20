@@ -1,5 +1,7 @@
 use axum::Json;
 use crate::util::govee;
+use govee::SetState;
+use std::collections::VecDeque;
 
 // TODO return different status code instead of default
 #[utoipa::path(
@@ -24,8 +26,9 @@ async fn get_state() -> Json<govee::GetState> {
     }
 }
 
-/// start webserver. never terminates
-pub async fn start_server() {
+/// start webserver. never terminates.
+/// functions in `function_queue` have access to `govee_queue`.
+pub async fn start_server(function_queue: &mut VecDeque<&dyn Fn(&mut VecDeque<SetState>) -> ()>) {
     use crate::res::constants::net::*;
     use axum::routing::get;
     use axum::response::Redirect;

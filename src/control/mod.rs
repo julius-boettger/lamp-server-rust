@@ -8,9 +8,6 @@ use std::collections::VecDeque;
 
 /// never terminates
 pub async fn main_loop() {
-    use crate::res::constants::govee::API_REQUEST_INTERVAL;
-    use std::thread::sleep;
-
     {
         use constants::sunrise::*;
         if govee_brightness::START >= govee_brightness::STOP {
@@ -21,12 +18,26 @@ pub async fn main_loop() {
         }
     };
 
+    use crate::res::constants::govee::API_REQUEST_INTERVAL;
+    use std::thread::sleep;
+
     // queue of `SetState`s of which the first one will be executed each iteration
     let mut govee_queue: VecDeque<SetState> = VecDeque::new();
 
+    // queue of functions to be executed once at the start of the next loop.
+    // all functions will be executed and then removed from the queue, starting from the front.
+    // each function has access to govee_queue.
+    let mut function_queue: VecDeque<&dyn Fn(&mut VecDeque<SetState>) -> ()> = VecDeque::new();
+
+    // "fire and forget" web server start
+    tokio::spawn(web::start_server(&mut function_queue));
+
+    // DEBUG generate a sunrise
     generate_sunrise(&mut govee_queue, Duration::from_secs(1 * 60));
 
+    // actual main loop
     loop {
+        // TODO call functions in function_queue
         if !govee_queue.is_empty() {
             govee::set_state(govee_queue.pop_front().unwrap()).await;
         }
