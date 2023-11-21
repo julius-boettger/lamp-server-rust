@@ -3,9 +3,12 @@
 pub mod govee {
     use std::time::Duration;
     /// this is the max api request rate.
-    /// will reach daily rate limit if used more than 16h40min in a single day.
+    /// will reach daily rate limit if used more than 16h40min in a single day
+    /// (calling PUT device state every 6s).
+    /// this is independent for GET and PUT device state calls,
+    /// but calling GET every 6s for 24h is not possible. if you plan to use
+    /// GET and PUT increase this interval to > 8s or something.
     pub const API_REQUEST_INTERVAL: Duration = Duration::from_secs(6);
-    // TODO actually measure how long a call usually takes
     /// how long a `set_state()` call usually takes
     pub const AVG_SET_STATE_DURATION: Duration = Duration::from_millis(500);
 }

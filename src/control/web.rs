@@ -63,8 +63,6 @@ pub async fn start_server(function_queue: fn_queue::Queue) {
     )]
     struct ApiDoc;
 
-    // TODO pass function_queue to route handlers
-
     let app = axum::Router::new()
         // swagger ui
         .merge(SwaggerUi::new("/swagger-ui")
