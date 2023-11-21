@@ -1,4 +1,5 @@
 pub mod web;
+pub mod timer;
 pub mod fn_queue;
 
 use crate::util::govee;
@@ -32,9 +33,14 @@ pub async fn main_loop() {
     // confusing type is for thread safety.
     let mut function_queue: fn_queue::Queue = Arc::new(Mutex::new(VecDeque::new()));
 
+    // collection of timers to be checked every minute.
+    // if a timer matches the current time its function will be pushed to the function queue.
+    let simple_timers: timer::SimpleTimers = Arc::new(Mutex::new(Vec::new()));
+
     // "fire and forget" web server start
     tokio::spawn(web::start_server(
-        Arc::clone(&function_queue)
+        Arc::clone(&function_queue),
+        Arc::clone(&simple_timers)
     ));
 
     // wait before starting loop to avoid reaching rate limits when restarting frequently
@@ -42,6 +48,8 @@ pub async fn main_loop() {
 
     // actual main loop
     loop {
+        timer::check_timers(&simple_timers, &mut function_queue);
+
         fn_queue::call_all(&mut function_queue, &mut govee_queue);
 
         if !govee_queue.is_empty() {

@@ -1,6 +1,8 @@
 use axum::Json;
+use control::timer::SimpleTimers;
+use crate::control;
+use control::fn_queue;
 use crate::util::govee;
-use crate::control::fn_queue;
 
 // TODO return different status code instead of default
 #[utoipa::path(
@@ -45,13 +47,16 @@ async fn get_clear_govee_queue(mut function_queue: fn_queue::Queue) -> &'static 
 }
 
 /// start webserver. never terminates.
-pub async fn start_server(function_queue: fn_queue::Queue) {
+pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
     use crate::res::constants::net::*;
+    use control::timer::Timers;
+    use std::sync::{Arc, Mutex};
     use axum::routing::get;
     use axum::response::Redirect;
     use utoipa::OpenApi;
     use utoipa_swagger_ui::SwaggerUi;
 
+    // set up utoipa swagger ui
     #[derive(OpenApi)]
     #[openapi(
         paths(
@@ -63,12 +68,19 @@ pub async fn start_server(function_queue: fn_queue::Queue) {
     )]
     struct ApiDoc;
 
+    // higher level timers which will be converted and pushed to `simple_timers`
+    let mut timers: Timers = Arc::new(Mutex::new(Vec::new()));
+
+    // configure routes
     let app = axum::Router::new()
+
         // swagger ui
         .merge(SwaggerUi::new("/swagger-ui")
             .url("/openapi.json", ApiDoc::openapi()))
+
         // temporarily redirect root to swagger ui
         .route("/", get(|| async { Redirect::temporary("/swagger-ui") }))
+
         // actual api
         .route("/state", get(get_state))
         .route("/clear_govee_queue", get(|| async {
@@ -76,6 +88,7 @@ pub async fn start_server(function_queue: fn_queue::Queue) {
         }))
     ;
 
+    // start server
     let address = std::net::SocketAddr::new(LOCALHOST, PORT);
     println!("WEB: starting server on http://{address} ...");
     axum::Server::bind(&address)
