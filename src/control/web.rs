@@ -1,6 +1,6 @@
 use axum::Json;
 use crate::util::govee;
-use crate::control::fn_queue::FunctionQueue;
+use crate::control::fn_queue;
 
 // TODO return different status code instead of default
 #[utoipa::path(
@@ -27,7 +27,7 @@ async fn get_state() -> Json<govee::GetState> {
 
 /// start webserver. never terminates.
 /// functions in `function_queue` have access to `govee_queue`.
-pub async fn start_server(function_queue: FunctionQueue) {
+pub async fn start_server(function_queue: fn_queue::Queue) {
     use crate::res::constants::net::*;
     use axum::routing::get;
     use axum::response::Redirect;
