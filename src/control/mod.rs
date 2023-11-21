@@ -42,7 +42,7 @@ pub async fn main_loop() {
 
     // actual main loop
     loop {
-        fn_queue::call(&mut function_queue, &mut govee_queue);
+        fn_queue::call_all(&mut function_queue, &mut govee_queue);
 
         if !govee_queue.is_empty() {
             govee::set_state(govee_queue.pop_front().unwrap()).await;
