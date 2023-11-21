@@ -1,6 +1,6 @@
 use crate::util;
+use crate::res::constants;
 use crate::res::secrets::govee;
-use crate::view::out::govee_debug;
 
 pub type RGBColor = (u8, u8, u8);
 
@@ -29,13 +29,14 @@ pub struct GetState {
 /// limits brightness from 1 to 100.
 /// returns success.
 /// dependent on govee api.
-/// prints `state` instead of setting it if `cfg!(govee_debug)`.
+/// only prints state and waits a little instead of setting it if `cfg!(govee_debug)`.
 pub async fn set_state(state: SetState) -> bool {
 
     println!("setting state to {:?}", state);
 
     if cfg!(govee_debug) {
-        govee_debug::println("not really sending anything :)".to_owned());
+        // emulate request by waiting a bit
+        std::thread::sleep(constants::govee::AVG_SET_STATE_DURATION);
         return true;
     }
 
@@ -81,18 +82,7 @@ pub async fn set_state(state: SetState) -> bool {
 }
 
 /// dependent on govee api.
-/// returns built-in default `GetState` if `cfg!(govee_debug)`.
 pub async fn get_state() -> Result<GetState, ()> {
-    if cfg!(govee_debug) {
-        const DEFAULT: GetState = GetState {
-            color: (0, 0, 255),
-            brightness: 100,
-            power: true
-        };
-        govee_debug::println(format!("using default {:?}", DEFAULT));
-        return Ok(DEFAULT);
-    }
-
     let url = format!("https://developer-api.govee.com/v1/devices/state?device={}&model={}", govee::DEVICE, govee::MODEL);
     let result = util::send_api_request(
         util::HttpMethod::Get,

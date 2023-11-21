@@ -1,5 +1,5 @@
 /*
-debug mode:
+enable govee debug mode:
     create .cargo/config.toml with content:
     [build]
     rustflags = "--cfg govee_debug"
@@ -7,7 +7,6 @@ debug mode:
 
 mod res;
 mod util;
-mod view;
 mod control;
 
 #[tokio::main]

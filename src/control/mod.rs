@@ -21,6 +21,10 @@ pub async fn main_loop() {
         }
     };
 
+    if cfg!(govee_debug) {
+        println!("GOVEE_DEBUG is enabled: not sending PUT requests to Govee API");
+    }
+
     use crate::res::constants::govee::API_REQUEST_INTERVAL;
     use std::thread::sleep;
 

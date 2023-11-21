@@ -42,6 +42,7 @@ async fn get_clear_govee_queue(mut function_queue: fn_queue::Queue) -> &'static 
     fn_queue::enqueue(&mut function_queue, Box::new(|govee_queue| {
         println!("{} elements in govee queue, clearing...", govee_queue.len());
         govee_queue.clear();
+        // TODO also set default brightness and turn lamp off?
     }));
     message
 }
