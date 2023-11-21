@@ -25,6 +25,25 @@ async fn get_state() -> Json<govee::GetState> {
     }
 }
 
+// TODO better return type?
+#[utoipa::path(
+    get,
+    path = "/clear_govee_queue",
+    responses((
+        status = 200,
+        description = "Clear queue of Govee API calls to make. Return response message."
+    ))
+)]
+async fn get_clear_govee_queue(mut function_queue: fn_queue::Queue) -> &'static str {
+    let message = "queued clearing Govee API call queue";
+    println!("{}", message);
+    fn_queue::enqueue(&mut function_queue, Box::new(|govee_queue| {
+        println!("{} elements in govee queue, clearing...", govee_queue.len());
+        govee_queue.clear();
+    }));
+    message
+}
+
 /// start webserver. never terminates.
 pub async fn start_server(function_queue: fn_queue::Queue) {
     use crate::res::constants::net::*;
@@ -37,7 +56,8 @@ pub async fn start_server(function_queue: fn_queue::Queue) {
     #[openapi(
         paths(
             // functions with utoipa::path attributes
-            get_state
+            get_state,
+            get_clear_govee_queue,
         ),
         components(schemas(govee::GetState))
     )]
@@ -53,12 +73,8 @@ pub async fn start_server(function_queue: fn_queue::Queue) {
         .route("/", get(|| async { Redirect::temporary("/swagger-ui") }))
         // actual api
         .route("/state", get(get_state))
-        .route("/test", get(|| async {
-            println!("requested /test");
-            fn_queue::enqueue(&mut function_queue, Box::new(|govee_queue| {
-                govee_queue.clear();
-            }));
-            ""
+        .route("/clear_govee_queue", get(|| async {
+            get_clear_govee_queue(function_queue).await
         }))
     ;
 
