@@ -26,7 +26,6 @@ async fn get_state() -> Json<govee::GetState> {
 }
 
 /// start webserver. never terminates.
-/// functions in `function_queue` have access to `govee_queue`.
 pub async fn start_server(function_queue: fn_queue::Queue) {
     use crate::res::constants::net::*;
     use axum::routing::get;
@@ -53,7 +52,15 @@ pub async fn start_server(function_queue: fn_queue::Queue) {
         // temporarily redirect root to swagger ui
         .route("/", get(|| async { Redirect::temporary("/swagger-ui") }))
         // actual api
-        .route("/state", get(get_state));
+        .route("/state", get(get_state))
+        .route("/test", get(|| async {
+            println!("requested /test");
+            fn_queue::enqueue(&mut function_queue, Box::new(|govee_queue| {
+                govee_queue.clear();
+            }));
+            ""
+        }))
+    ;
 
     let address = std::net::SocketAddr::new(LOCALHOST, PORT);
     println!("WEB: starting server on http://{address} ...");

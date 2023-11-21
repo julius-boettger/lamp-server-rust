@@ -30,7 +30,7 @@ pub async fn main_loop() {
     // all functions will be executed and then removed from the queue, starting from the front.
     // each function has access to govee_queue.
     // confusing type is for thread safety.
-    let mut function_queue: fn_queue::Queue = Arc::new(Mutex::new(VecDeque::new()));
+    let function_queue: fn_queue::Queue = Arc::new(Mutex::new(VecDeque::new()));
 
     // "fire and forget" web server start
     tokio::spawn(web::start_server(
