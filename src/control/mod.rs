@@ -1,5 +1,6 @@
 pub mod web;
 pub mod timer;
+pub mod timeday;
 pub mod fn_queue;
 
 use crate::util::govee;

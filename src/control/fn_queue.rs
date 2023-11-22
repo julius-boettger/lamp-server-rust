@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
 use crate::control::govee::SetState;
 
+/// take govee_queue as argument
 pub type Element = Box<dyn Fn(&mut VecDeque<SetState>) -> () + Send>;
 // TODO use tokio::sync::Mutex?
 pub type Queue = Arc<Mutex<VecDeque<Element>>>;

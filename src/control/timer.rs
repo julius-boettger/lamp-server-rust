@@ -1,17 +1,22 @@
-use crate::control::fn_queue;
+use crate::control::{fn_queue, timeday::TimeDay};
 use std::sync::{Arc, Mutex};
 
 pub type SimpleTimers = Arc<Mutex<Vec<SimpleTimer>>>;
 pub type Timers = Arc<Mutex<Vec<Timer>>>;
 
-#[derive(Debug)]
 pub struct SimpleTimer {
     // TODO implement struct
+    timeday: TimeDay,
+    /// take function_queue as argument
+    function: Box<dyn Fn(&mut fn_queue::Queue) -> () + Send>
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Timer {
-    // TODO implement struct
+pub enum Timer {
+    /// alarm for waking up with sunrise
+    Alarm {
+        // TODO implement enum
+    }
 }
 
 /// get a copy of the current value of `timers`
