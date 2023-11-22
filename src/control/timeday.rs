@@ -53,10 +53,11 @@ impl TimeDay {
         self.days = days;
     }
 
+    /// can shift in both forwards and backwards in time
     fn shift_time(&self, hour_shift: i8, minute_shift: i8) -> TimeDay {
         let mut total_minutes: i16 = i16::from(self.minute ) + (i16::from(self.hour ) * 60);
         let     shift_minutes: i16 = i16::from(minute_shift) + (i16::from(hour_shift) * 60);
-        total_minutes -= shift_minutes;
+        total_minutes += shift_minutes;
 
         let mut days = self.days.clone();
         // shift days until total_minutes is positive
@@ -66,6 +67,13 @@ impl TimeDay {
             ).collect();
             total_minutes += 60 * 24; // minutes in a day
         }
+        // shift days until total_minutes is less than a day
+        while total_minutes >= 60 * 24 {
+            days = days.into_iter().map(|day|
+                if day == 6 { 0 } else { day + 1 }
+            ).collect();
+            total_minutes -= 60 * 24; // minutes in a day
+        }
 
         let hour = total_minutes / 60;
         let minute = total_minutes - (hour * 60);
@@ -74,4 +82,70 @@ impl TimeDay {
     }
 }
 
-// TODO write shift_time() tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn simple_minute_shift() {
+        let timeday = TimeDay::new(15, 20, vec![5]);
+        let result = timeday.shift_time(0, 5);
+        assert_eq!(result.get_days(), timeday.get_days());
+        assert_eq!(result.get_hour(), timeday.get_hour());
+        assert_eq!(*result.get_minute(), 25);
+    }
+
+    #[test]
+    fn minute_shift() {
+        let timeday = TimeDay::new(15, 20, vec![5]);
+        let result = timeday.shift_time(0, 45);
+        assert_eq!(result.get_days(), timeday.get_days());
+        assert_eq!(*result.get_hour(), 16);
+        assert_eq!(*result.get_minute(), 5);
+    }
+
+    #[test]
+    fn midnight_minute_shift() {
+        let timeday = TimeDay::new(0, 15, vec![0, 1]);
+        let result = timeday.shift_time(0, -16);
+        assert_eq!(*result.get_days(), vec![6, 0]);
+        assert_eq!(*result.get_hour(), 23);
+        assert_eq!(*result.get_minute(), 59);
+    }
+
+    #[test]
+    fn simple_hour_shift() {
+        let timeday = TimeDay::new(12, 5, vec![0, 1, 2, 3, 4, 5, 6]);
+        let result = timeday.shift_time(-2, 0);
+        assert_eq!(result.get_days(), timeday.get_days());
+        assert_eq!(*result.get_hour(), 10);
+        assert_eq!(result.get_minute(), timeday.get_minute());
+    }
+
+    #[test]
+    fn midnight_hour_shift() {
+        let timeday = TimeDay::new(12, 5, vec![2, 3, 5, 6]);
+        let result = timeday.shift_time(-14, 0);
+        assert_eq!(*result.get_days(), vec![1, 2, 4, 5]);
+        assert_eq!(*result.get_hour(), 22);
+        assert_eq!(result.get_minute(), timeday.get_minute());
+    }
+
+    #[test]
+    fn complex_forward_shift() {
+        let timeday = TimeDay::new(21, 46, vec![0, 2, 3, 6]);
+        let result = timeday.shift_time(3 + 24, 14);
+        assert_eq!(*result.get_days(), vec![2, 4, 5, 1]);
+        assert_eq!(*result.get_hour(), 1);
+        assert_eq!(*result.get_minute(), 0);
+    }
+
+    #[test]
+    fn complex_backward_shift() {
+        let timeday = TimeDay::new(3, 4, vec![0, 2, 3, 6]);
+        let result = timeday.shift_time(-12 - 24, -4);
+        assert_eq!(*result.get_days(), vec![5, 0, 1, 4]);
+        assert_eq!(*result.get_hour(), 15);
+        assert_eq!(*result.get_minute(), 0);
+    }
+}
