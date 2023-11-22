@@ -1,5 +1,3 @@
-#[allow(dead_code)]
-
 pub mod govee {
     use std::time::Duration;
     /// this is the max api request rate.

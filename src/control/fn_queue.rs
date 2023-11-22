@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use crate::control::govee::SetState;
 
 /// take govee_queue as argument
-pub type Element = Box<dyn Fn(&mut VecDeque<SetState>) -> () + Send>;
+pub type Element = &'static (dyn Fn(&mut VecDeque<SetState>) -> () + Send + Sync);
 // TODO use tokio::sync::Mutex?
 pub type Queue = Arc<Mutex<VecDeque<Element>>>;
 

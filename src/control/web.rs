@@ -1,8 +1,12 @@
 use axum::Json;
-use control::timer::SimpleTimers;
-use crate::control;
-use control::fn_queue;
 use crate::util::govee;
+use crate::res::constants;
+use crate::control::{
+    self,
+    fn_queue,
+    govee::SetState,
+    timer::SimpleTimers
+};
 
 // TODO return different status code instead of default
 #[utoipa::path(
@@ -39,11 +43,13 @@ async fn get_state() -> Json<govee::GetState> {
 async fn get_clear_govee_queue(mut function_queue: fn_queue::Queue) -> &'static str {
     let message = "queued clearing Govee API call queue";
     println!("{}", message);
-    fn_queue::enqueue(&mut function_queue, Box::new(|govee_queue| {
+    fn_queue::enqueue(&mut function_queue, &|govee_queue| {
         println!("{} elements in govee queue, clearing...", govee_queue.len());
         govee_queue.clear();
-        // TODO also set default brightness and turn lamp off?
-    }));
+        println!("queueing setting default brightness and turning off...");
+        govee_queue.push_back(SetState::Brightness(constants::govee::default_brightness::DAY));
+        govee_queue.push_back(SetState::Power(false));
+    });
     message
 }
 
@@ -70,7 +76,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
     struct ApiDoc;
 
     // higher level timers which will be converted and pushed to `simple_timers`
-    let mut timers: Timers = Arc::new(Mutex::new(Vec::new()));
+    let mut timers: Timers = Arc::new(Mutex::new(vec![]));
 
     // configure routes
     let app = axum::Router::new()

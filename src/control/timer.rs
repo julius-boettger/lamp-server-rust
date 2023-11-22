@@ -1,13 +1,16 @@
-use crate::control::{fn_queue, timeday::TimeDay};
 use std::sync::{Arc, Mutex};
+use crate::control::{
+    fn_queue,
+    timeday::TimeDay
+};
 
 pub type SimpleTimers = Arc<Mutex<Vec<SimpleTimer>>>;
 pub type Timers = Arc<Mutex<Vec<Timer>>>;
 
 pub struct SimpleTimer {
-    timeday: TimeDay,
-    /// take function_queue as argument
-    function: Box<dyn Fn(&mut fn_queue::Queue) -> () + Send>
+    pub timeday: TimeDay,
+    /// take govee_queue as argument
+    pub function: fn_queue::Element
 }
 
 #[derive(Debug, Clone)]
@@ -43,6 +46,16 @@ pub fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
 }
 
 /// if a timer matches the current date/time: push its function to the function queue.
-pub fn check_timers(simple_timers: &SimpleTimers, function_queue: &mut fn_queue::Queue) {
-    // TODO implement function
+pub fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &mut fn_queue::Queue) {
+    let now = TimeDay::now();
+    let simple_timers = simple_timers.lock().unwrap();
+    for timer in simple_timers.iter() {
+        if timer.timeday.get_days().contains(&now.get_days()[0])
+        && timer.timeday.get_hour() == now.get_hour()
+        && timer.timeday.get_minute() == now.get_minute() {
+            // TODO only run timer once a minute on match
+            fn_queue::enqueue(&mut function_queue, timer.function);
+            // TODO print something like "matched timer"
+        }
+    }
 }

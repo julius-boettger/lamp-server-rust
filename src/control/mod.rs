@@ -40,7 +40,16 @@ pub async fn main_loop() {
 
     // collection of timers to be checked every minute.
     // if a timer matches the current time its function will be pushed to the function queue.
-    let simple_timers: timer::SimpleTimers = Arc::new(Mutex::new(Vec::new()));
+    let simple_timers: timer::SimpleTimers = Arc::new(Mutex::new(vec![
+        // DEBUG
+        timer::SimpleTimer {
+            timeday: timeday::TimeDay::new(16, 35, vec![0, 1, 2, 3, 4, 5, 6]),
+            function: &|govee_queue| {
+                govee_queue.push_back(SetState::Power(true));
+                govee_queue.push_back(SetState::Power(false));
+            }
+        }
+    ]));
 
     // "fire and forget" web server start
     tokio::spawn(web::start_server(
@@ -98,6 +107,8 @@ fn generate_sunrise(govee_queue: &mut VecDeque<SetState>, sunrise_duration: Dura
         ));
         iteration += 1.0;
     }
+
+    // TODO print something
 }
 
 // append `SetState::Power(true)`s to simulate doing nothing for the given duration
