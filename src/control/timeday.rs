@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TimeDay {
     hour: u8,
     minute: u8,
