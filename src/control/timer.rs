@@ -1,6 +1,9 @@
+use std::time::Duration;
 use std::sync::{Arc, Mutex};
 use crate::control::{
+    self,
     fn_queue,
+    SetState,
     timeday::TimeDay
 };
 
@@ -15,13 +18,13 @@ pub struct SimpleTimer {
 
 #[derive(Debug, Clone)]
 pub struct Timer {
-    enable: bool,
-    timeday: TimeDay,
-    action: TimerAction
+    pub enable: bool,
+    pub timeday: TimeDay,
+    pub action: TimerAction
 }
 
 #[derive(Debug, Clone)]
-enum TimerAction {
+pub enum TimerAction {
     /// alarm for waking up with sunrise.
     /// sunrise finishes on `timeday` and then stays on for `stay_on_for_min` before turning off.
     Sunrise {
@@ -39,9 +42,40 @@ pub fn get_clone(timers: &Timers) -> Vec<Timer> {
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.
 pub fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
-    let mut simple_timers = simple_timers.lock().unwrap();
-    simple_timers.clear();
-    // TODO implement function
+    let mut generated_timers: Vec<SimpleTimer> = vec![];
+
+    for timer in timers.lock().unwrap().iter() {
+        // skip disabled timers
+        if !timer.enable { continue; }
+        match timer.action {
+            TimerAction::Sunrise { duration_min, stay_on_for_min } => {
+                // actual sunrise
+                generated_timers.push(SimpleTimer {
+                    timeday: timer.timeday.shift_time(
+                        0,
+                        - (duration_min as i8)
+                    ),
+                    function: &|govee_queue| {
+                        control::generate_sunrise(
+                            govee_queue,
+                            Duration::from_secs(u64::from(duration_min) * 60)
+                        );
+                    }
+                });
+                // turn off later
+                generated_timers.push(SimpleTimer {
+                    timeday: timer.timeday.shift_time(
+                        0,
+                        stay_on_for_min as i8
+                    ),
+                    function: &|govee_queue|
+                        govee_queue.push_back(SetState::Power(false))
+                });
+            }
+        }
+    }
+
+    *simple_timers.lock().unwrap() = generated_timers;
 }
 
 /// if a timer matches the current date/time: push its function to the function queue.

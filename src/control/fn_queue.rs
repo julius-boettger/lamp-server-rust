@@ -17,6 +17,5 @@ pub fn call_all(function_queue: &mut Queue, govee_queue: &mut VecDeque<SetState>
 }
 
 pub fn enqueue(function_queue: &mut Queue, function: Element) {
-    let mut function_queue = function_queue.lock().unwrap();
-    function_queue.push_back(function);
+    function_queue.lock().unwrap().push_back(function);
 }
