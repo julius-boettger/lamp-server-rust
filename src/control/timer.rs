@@ -45,10 +45,15 @@ pub fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
 }
 
 /// if a timer matches the current date/time: push its function to the function queue.
-pub fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &mut fn_queue::Queue) {
+/// update `last_checked` with the current time if timers have been checked.
+pub fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &mut fn_queue::Queue, last_checked: &mut TimeDay) {
     let now = TimeDay::now();
-    let simple_timers = simple_timers.lock().unwrap();
-    for timer in simple_timers.iter() {
+    // if timers have already been checked this minute
+    if now == *last_checked {
+        return;
+    }
+
+    for timer in simple_timers.lock().unwrap().iter() {
         if timer.timeday.get_days().contains(&now.get_days()[0])
         && timer.timeday.get_hour() == now.get_hour()
         && timer.timeday.get_minute() == now.get_minute() {
@@ -57,4 +62,6 @@ pub fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &mut fn_qu
             // TODO print something like "matched timer"
         }
     }
+
+    *last_checked = now;
 }

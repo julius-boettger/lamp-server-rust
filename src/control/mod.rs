@@ -12,22 +12,23 @@ use std::collections::VecDeque;
 
 /// never terminates
 pub async fn main_loop() {
-    {
-        use constants::sunrise::*;
-        if govee_brightness::START >= govee_brightness::STOP {
-            panic!("sunrise brightness has to start smaller than it stops");
-        }
-        if hsv_color::saturation::START <= hsv_color::saturation::STOP {
-            panic!("sunrise color saturation has to start larger than it stops");
-        }
-    };
+
+    use constants::govee::API_REQUEST_INTERVAL;
+    use constants::sunrise::*;
+    use std::thread::sleep;
+    use timer::SimpleTimers;
+    use timeday::TimeDay;
+
+    if govee_brightness::START >= govee_brightness::STOP {
+        panic!("sunrise brightness has to start smaller than it stops");
+    }
+    if hsv_color::saturation::START <= hsv_color::saturation::STOP {
+        panic!("sunrise color saturation has to start larger than it stops");
+    }
 
     if cfg!(govee_debug) {
         println!("GOVEE_DEBUG is enabled: not sending PUT requests to Govee API");
     }
-
-    use crate::res::constants::govee::API_REQUEST_INTERVAL;
-    use std::thread::sleep;
 
     // queue of `SetState`s of which the first one will be executed each iteration
     let mut govee_queue: VecDeque<SetState> = VecDeque::new();
@@ -40,16 +41,10 @@ pub async fn main_loop() {
 
     // collection of timers to be checked every minute.
     // if a timer matches the current time its function will be pushed to the function queue.
-    let simple_timers: timer::SimpleTimers = Arc::new(Mutex::new(vec![
-        // DEBUG
-        timer::SimpleTimer {
-            timeday: timeday::TimeDay::new(16, 35, vec![0, 1, 2, 3, 4, 5, 6]),
-            function: &|govee_queue| {
-                govee_queue.push_back(SetState::Power(true));
-                govee_queue.push_back(SetState::Power(false));
-            }
-        }
-    ]));
+    let simple_timers: SimpleTimers = Arc::new(Mutex::new(vec![]));
+
+    // will be updated by timer::check_timers() to avoid matching timers more than once per minute
+    let mut last_checked_time = TimeDay::now().shift_time(0, -1);
 
     // "fire and forget" web server start
     tokio::spawn(web::start_server(
@@ -62,7 +57,7 @@ pub async fn main_loop() {
 
     // actual main loop
     loop {
-        timer::check_timers(&simple_timers, &mut function_queue);
+        timer::check_timers(&simple_timers, &mut function_queue, &mut last_checked_time);
 
         fn_queue::call_all(&mut function_queue, &mut govee_queue);
 
