@@ -7,7 +7,7 @@ pub struct TimeDay {
 
 impl TimeDay {
     /// panics if at least one value is out of range. see setters for ranges.
-    fn new(hour: u8, minute: u8, days: Vec<u8>) -> Self {
+    pub fn new(hour: u8, minute: u8, days: Vec<u8>) -> Self {
         let mut instance = TimeDay { hour: 0, minute: 0, days: vec![] };
         instance.set_hour(hour);
         instance.set_minute(minute);
@@ -15,9 +15,50 @@ impl TimeDay {
         instance
     }
 
-    fn get_hour(&self) -> &u8 { &self.hour }
-    fn get_minute(&self) -> &u8 { &self.minute }
-    fn get_days(&self) -> &Vec<u8> { &self.days }
+    /// current time and weekday in berlin, germany
+    pub fn now() -> Self {
+        use chrono::{Utc, Timelike, Datelike};
+        use chrono_tz::Europe::Berlin;
+
+        let now = Utc::now().with_timezone(&Berlin);
+        Self::new(
+            now.hour() as u8,
+            now.minute() as u8,
+            vec![now.weekday().num_days_from_monday() as u8]
+        )
+    }
+
+    pub fn get_hour(&self) -> &u8 { &self.hour }
+    pub fn get_minute(&self) -> &u8 { &self.minute }
+    pub fn get_days(&self) -> &Vec<u8> { &self.days }
+
+    /// can shift in both forwards and backwards in time
+    pub fn shift_time(&self, hour_shift: i8, minute_shift: i8) -> Self {
+        let mut total_minutes: i16 = i16::from(self.minute ) + (i16::from(self.hour ) * 60);
+        let     shift_minutes: i16 = i16::from(minute_shift) + (i16::from(hour_shift) * 60);
+        total_minutes += shift_minutes;
+
+        let mut days = self.days.clone();
+        // shift days until total_minutes is positive
+        while total_minutes < 0 {
+            days = days.into_iter().map(|day|
+                if day == 0 { 6 } else { day - 1 }
+            ).collect();
+            total_minutes += 60 * 24; // minutes in a day
+        }
+        // shift days until total_minutes is less than a day
+        while total_minutes >= 60 * 24 {
+            days = days.into_iter().map(|day|
+                if day == 6 { 0 } else { day + 1 }
+            ).collect();
+            total_minutes -= 60 * 24; // minutes in a day
+        }
+
+        let hour = total_minutes / 60;
+        let minute = total_minutes - (hour * 60);
+
+        Self::new(hour as u8, minute as u8, days)
+    }
 
     /// 0 to 23. panics if value is out of range.
     fn set_hour(&mut self, hour: u8) {
@@ -51,34 +92,6 @@ impl TimeDay {
             panic!("every day has to be <= 6, days were {:?}", days);
         }
         self.days = days;
-    }
-
-    /// can shift in both forwards and backwards in time
-    fn shift_time(&self, hour_shift: i8, minute_shift: i8) -> TimeDay {
-        let mut total_minutes: i16 = i16::from(self.minute ) + (i16::from(self.hour ) * 60);
-        let     shift_minutes: i16 = i16::from(minute_shift) + (i16::from(hour_shift) * 60);
-        total_minutes += shift_minutes;
-
-        let mut days = self.days.clone();
-        // shift days until total_minutes is positive
-        while total_minutes < 0 {
-            days = days.into_iter().map(|day|
-                if day == 0 { 6 } else { day - 1 }
-            ).collect();
-            total_minutes += 60 * 24; // minutes in a day
-        }
-        // shift days until total_minutes is less than a day
-        while total_minutes >= 60 * 24 {
-            days = days.into_iter().map(|day|
-                if day == 6 { 0 } else { day + 1 }
-            ).collect();
-            total_minutes -= 60 * 24; // minutes in a day
-        }
-
-        let hour = total_minutes / 60;
-        let minute = total_minutes - (hour * 60);
-
-        Self::new(hour as u8, minute as u8, days)
     }
 }
 

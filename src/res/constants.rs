@@ -12,7 +12,7 @@ pub mod govee {
     /// how long a `set_state()` call usually takes
     pub const AVG_SET_STATE_DURATION: Duration = Duration::from_millis(500);
     pub mod default_brightness {
-        pub const DAY: u8 = 10;
+        pub const DAY: u8 = 15;
         pub const NIGHT: u8 = 1;
     }
 }
