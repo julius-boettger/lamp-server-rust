@@ -23,8 +23,7 @@ pub struct Timer {
 #[derive(Debug, Clone)]
 enum TimerAction {
     /// alarm for waking up with sunrise.
-    /// sunrise finishes on `timeday` and then stays on for `stay_on_for_min`
-    /// before returning to default brightness and turning off.
+    /// sunrise finishes on `timeday` and then stays on for `stay_on_for_min` before turning off.
     Sunrise {
         /// how long the sunrise should be
         duration_min: u8,
