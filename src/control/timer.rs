@@ -57,9 +57,12 @@ pub fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &mut fn_qu
         if timer.timeday.get_days().contains(&now.get_days()[0])
         && timer.timeday.get_hour() == now.get_hour()
         && timer.timeday.get_minute() == now.get_minute() {
-            // TODO only run timer once a minute on match
             fn_queue::enqueue(&mut function_queue, timer.function);
-            // TODO print something like "matched timer"
+            println!("matched timer for {:02}:{:02} on days {:?}",
+                timer.timeday.get_hour(),
+                timer.timeday.get_minute(),
+                timer.timeday.get_days()
+            );
         }
     }
 

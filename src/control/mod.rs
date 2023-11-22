@@ -103,7 +103,10 @@ fn generate_sunrise(govee_queue: &mut VecDeque<SetState>, sunrise_duration: Dura
         iteration += 1.0;
     }
 
-    // TODO print something
+    println!("generated {} sunrise states for {:.1} min sunrise",
+        state_amount as u32,
+        sunrise_duration.as_secs_f32() / 60f32
+    );
 }
 
 // append `SetState::Power(true)`s to simulate doing nothing for the given duration
