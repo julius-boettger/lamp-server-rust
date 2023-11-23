@@ -2,6 +2,7 @@ use axum::Json;
 use std::sync::Arc;
 use serde::Deserialize;
 use axum::extract::{self, State};
+use utoipa::{IntoParams, ToSchema};
 use crate::util::govee;
 use crate::res::constants;
 use crate::control::{
@@ -58,12 +59,20 @@ async fn get_clear_govee_queue(
     message
 }
 
-// TODO add utoipa doc
-#[derive(Debug, Deserialize)]
-struct PutPower { value: bool }
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
+struct PowerState { value: bool }
+#[utoipa::path(
+    put,
+    path = "/power",
+    params(PowerState),
+    responses((
+        status = 200,
+        description = "Queue requested power state. Return response message."
+    ))
+)]
 async fn put_power(
     State(mut function_queue): State<fn_queue::Queue>,
-    extract::Json(putpower): extract::Json<PutPower>
+    extract::Json(putpower): extract::Json<PowerState>
 ) -> &'static str {
     let setstate = SetState::Power(putpower.value);
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
@@ -90,8 +99,12 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             // functions with utoipa::path attributes
             get_state,
             get_clear_govee_queue,
+            put_power,
         ),
-        components(schemas(govee::GetState))
+        components(schemas(
+            govee::GetState,
+            PowerState,
+        ))
     )]
     struct ApiDoc;
 
