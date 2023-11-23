@@ -1,4 +1,5 @@
 use axum::Json;
+use std::sync::Arc;
 use crate::util::govee;
 use crate::res::constants;
 use crate::control::{
@@ -43,13 +44,13 @@ async fn get_state() -> Json<govee::GetState> {
 async fn get_clear_govee_queue(mut function_queue: fn_queue::Queue) -> &'static str {
     let message = "queued clearing Govee API call queue";
     println!("{}", message);
-    fn_queue::enqueue(&mut function_queue, &|govee_queue| {
+    fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue| {
         println!("{} elements in govee queue, clearing...", govee_queue.len());
         govee_queue.clear();
         println!("queueing setting default brightness and turning off...");
         govee_queue.push_back(SetState::Brightness(constants::govee::default_brightness::DAY));
         govee_queue.push_back(SetState::Power(false));
-    });
+    }));
     message
 }
 

@@ -55,12 +55,13 @@ pub fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
                         0,
                         - (duration_min as i8)
                     ),
-                    function: &|govee_queue| {
+                    function: Arc::new(|govee_queue| {
                         control::generate_sunrise(
                             govee_queue,
-                            Duration::from_secs(u64::from(duration_min) * 60)
+                            // TODO use duration_min
+                            Duration::from_secs(u64::from(0u8) * 60)
                         );
-                    }
+                    })
                 });
                 // turn off later
                 generated_timers.push(SimpleTimer {
@@ -68,8 +69,8 @@ pub fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
                         0,
                         stay_on_for_min as i8
                     ),
-                    function: &|govee_queue|
-                        govee_queue.push_back(SetState::Power(false))
+                    function: Arc::new(|govee_queue|
+                        govee_queue.push_back(SetState::Power(false)))
                 });
             }
         }
@@ -91,7 +92,7 @@ pub fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &mut fn_qu
         if timer.timeday.get_days().contains(&now.get_days()[0])
         && timer.timeday.get_hour() == now.get_hour()
         && timer.timeday.get_minute() == now.get_minute() {
-            fn_queue::enqueue(&mut function_queue, timer.function);
+            fn_queue::enqueue(&mut function_queue, Arc::clone(&timer.function));
             println!("matched timer for {:02}:{:02} on days {:?}",
                 timer.timeday.get_hour(),
                 timer.timeday.get_minute(),
