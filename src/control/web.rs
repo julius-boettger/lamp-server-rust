@@ -58,12 +58,27 @@ async fn get_clear_govee_queue(
     message
 }
 
+// TODO add utoipa doc
+#[derive(Debug, Deserialize)]
+struct PutPower { value: bool }
+async fn put_power(
+    State(mut function_queue): State<fn_queue::Queue>,
+    extract::Json(putpower): extract::Json<PutPower>
+) -> &'static str {
+    let setstate = SetState::Power(putpower.value);
+    fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
+        govee_queue.push_back(setstate);
+    }));
+    println!("queued {:?}", setstate);
+    "queued requested state"
+}
+
 /// start webserver. never terminates.
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
     use crate::res::constants::net::*;
     use control::timer::Timers;
-    use axum::routing::get;
     use std::sync::Mutex;
+    use axum::routing::{get, put};
     use axum::response::Redirect;
     use utoipa::OpenApi;
     use utoipa_swagger_ui::SwaggerUi;
@@ -96,6 +111,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
         // actual api
         .route("/state", get(get_state))
         .route("/clear_govee_queue", get(get_clear_govee_queue))
+            .with_state(Arc::clone(&function_queue))
+        .route("/power", put(put_power))
             .with_state(Arc::clone(&function_queue))
     ;
 
