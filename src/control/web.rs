@@ -12,6 +12,8 @@ use crate::control::{
     timer::SimpleTimers
 };
 
+// TODO return json instead of plain strings...?
+
 // TODO return different status code instead of default
 #[utoipa::path(
     get,
@@ -35,19 +37,18 @@ async fn get_state() -> Json<govee::GetState> {
     }
 }
 
-// TODO better return type?
 #[utoipa::path(
     get,
     path = "/clear_govee_queue",
     responses((
         status = 200,
-        description = "Clear queue of Govee API calls to make. Return response message."
+        description = "Clear queue of Govee API calls to make. Then set the brightness to a default value and turn the lamp off. Return response message."
     ))
 )]
 async fn get_clear_govee_queue(
     State(mut function_queue): State<fn_queue::Queue>
 ) -> &'static str {
-    let message = "queued clearing Govee API call queue";
+    let message = "queued clearing Govee API call queue, setting brightness and turning off";
     println!("{}", message);
     fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue| {
         println!("{} elements in govee queue, clearing...", govee_queue.len());
