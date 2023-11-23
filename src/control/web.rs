@@ -1,5 +1,7 @@
 use axum::Json;
 use std::sync::Arc;
+use serde::Deserialize;
+use axum::extract::{self, State};
 use crate::util::govee;
 use crate::res::constants;
 use crate::control::{
@@ -41,7 +43,9 @@ async fn get_state() -> Json<govee::GetState> {
         description = "Clear queue of Govee API calls to make. Return response message."
     ))
 )]
-async fn get_clear_govee_queue(mut function_queue: fn_queue::Queue) -> &'static str {
+async fn get_clear_govee_queue(
+    State(mut function_queue): State<fn_queue::Queue>
+) -> &'static str {
     let message = "queued clearing Govee API call queue";
     println!("{}", message);
     fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue| {
@@ -58,8 +62,8 @@ async fn get_clear_govee_queue(mut function_queue: fn_queue::Queue) -> &'static 
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
     use crate::res::constants::net::*;
     use control::timer::Timers;
-    use std::sync::{Arc, Mutex};
     use axum::routing::get;
+    use std::sync::Mutex;
     use axum::response::Redirect;
     use utoipa::OpenApi;
     use utoipa_swagger_ui::SwaggerUi;
@@ -91,9 +95,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
 
         // actual api
         .route("/state", get(get_state))
-        .route("/clear_govee_queue", get(|| async {
-            get_clear_govee_queue(function_queue).await
-        }))
+        .route("/clear_govee_queue", get(get_clear_govee_queue))
+            .with_state(Arc::clone(&function_queue))
     ;
 
     // start server

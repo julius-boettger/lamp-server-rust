@@ -2,9 +2,7 @@ use crate::util;
 use crate::res::constants;
 use crate::res::secrets::govee;
 
-pub type RGBColor = (u8, u8, u8);
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum SetState {
     Color((u8, u8, u8)),
     /// from 1 to 100
