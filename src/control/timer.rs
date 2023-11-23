@@ -55,11 +55,10 @@ pub fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
                         0,
                         - (duration_min as i8)
                     ),
-                    function: Arc::new(|govee_queue| {
+                    function: Arc::new(move |govee_queue| {
                         control::generate_sunrise(
                             govee_queue,
-                            // TODO use duration_min
-                            Duration::from_secs(u64::from(0u8) * 60)
+                            Duration::from_secs((duration_min as u64) * 60)
                         );
                     })
                 });
