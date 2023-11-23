@@ -17,7 +17,7 @@ pub enum SetState {
 )]
 pub struct GetState {
     #[schema(min_items = 3, max_items = 3)]
-    pub color: (u8, u8, u8),
+    pub rgb_color: (u8, u8, u8),
     /// from 1 to 100
     #[schema(minimum = 1, maximum = 100)]
     pub brightness: u8,
@@ -94,7 +94,7 @@ pub async fn get_state() -> Result<GetState, ()> {
 
     let data = &json["data"]["properties"];
     let state = GetState {
-        color: (
+        rgb_color: (
             data[3]["color"]["r"].as_u64().unwrap().try_into().unwrap(),
             data[3]["color"]["g"].as_u64().unwrap().try_into().unwrap(),
             data[3]["color"]["b"].as_u64().unwrap().try_into().unwrap()

@@ -62,7 +62,12 @@ pub async fn main_loop() {
         fn_queue::call_all(&mut function_queue, &mut govee_queue);
 
         if !govee_queue.is_empty() {
-            govee::set_state(govee_queue.pop_front().unwrap()).await;
+            let success = govee::set_state(*govee_queue.front().unwrap()).await;
+            if success {
+                govee_queue.pop_front();
+            } else {
+                println!("setting state failed, trying again");
+            }
         }
 
         println!("----- waiting -----");

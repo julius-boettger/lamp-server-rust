@@ -28,7 +28,7 @@ async fn get_state() -> Json<govee::GetState> {
         Json(state)
     } else {
         Json(govee::GetState {
-            color: (255, 255, 255),
+            rgb_color: (255, 255, 255),
             brightness: 100,
             power: false
         })
@@ -113,6 +113,39 @@ async fn put_brightness(
     "queued requested state"
 }
 
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
+struct ColorState {
+    #[ param(minimum = 0, maximum = 255)]
+    #[schema(minimum = 0, maximum = 255)]
+    r: u8,
+    #[ param(minimum = 0, maximum = 255)]
+    #[schema(minimum = 0, maximum = 255)]
+    g: u8,
+    #[ param(minimum = 0, maximum = 255)]
+    #[schema(minimum = 0, maximum = 255)]
+    b: u8
+}
+#[utoipa::path(
+    put,
+    path = "/color",
+    params(ColorState),
+    responses((
+        status = 200,
+        description = "Queue requested color state. Return response message."
+    ))
+)]
+async fn put_color(
+    State(mut function_queue): State<fn_queue::Queue>,
+    extract::Json(colorstate): extract::Json<ColorState>
+) -> &'static str {
+    let setstate = SetState::Color((colorstate.r, colorstate.g, colorstate.b));
+    fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
+        govee_queue.push_back(setstate);
+    }));
+    println!("queued {:?}", setstate);
+    "queued requested state"
+}
+
 /// start webserver. never terminates.
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
     use crate::res::constants::net::*;
@@ -132,11 +165,13 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             get_clear_govee_queue,
             put_power,
             put_brightness,
+            put_color,
         ),
         components(schemas(
             govee::GetState,
             PowerState,
             BrightnessState,
+            ColorState,
         ))
     )]
     struct ApiDoc;
@@ -161,6 +196,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
         .route("/power", put(put_power))
             .with_state(Arc::clone(&function_queue))
         .route("/brightness", put(put_brightness))
+            .with_state(Arc::clone(&function_queue))
+        .route("/color", put(put_color))
             .with_state(Arc::clone(&function_queue))
     ;
 
