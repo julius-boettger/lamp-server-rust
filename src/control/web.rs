@@ -72,9 +72,40 @@ struct PowerState { value: bool }
 )]
 async fn put_power(
     State(mut function_queue): State<fn_queue::Queue>,
-    extract::Json(putpower): extract::Json<PowerState>
+    extract::Json(powerstate): extract::Json<PowerState>
 ) -> &'static str {
-    let setstate = SetState::Power(putpower.value);
+    let setstate = SetState::Power(powerstate.value);
+    fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
+        govee_queue.push_back(setstate);
+    }));
+    println!("queued {:?}", setstate);
+    "queued requested state"
+}
+
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
+struct BrightnessState {
+    #[ param(minimum = 1, maximum = 100)]
+    #[schema(minimum = 1, maximum = 100)]
+    value: u8
+}
+#[utoipa::path(
+    put,
+    path = "/brightness",
+    params(BrightnessState),
+    responses((
+        status = 200,
+        description = "Queue requested brightness state. Return response message."
+    ))
+)]
+async fn put_brightness(
+    State(mut function_queue): State<fn_queue::Queue>,
+    extract::Json(brightnessstate): extract::Json<BrightnessState>
+) -> &'static str {
+    if brightnessstate.value < 1 || brightnessstate.value > 100 {
+        // TODO return different status code
+        return "wrong range";
+    }
+    let setstate = SetState::Brightness(brightnessstate.value);
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
     }));
@@ -100,10 +131,12 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             get_state,
             get_clear_govee_queue,
             put_power,
+            put_brightness,
         ),
         components(schemas(
             govee::GetState,
             PowerState,
+            BrightnessState,
         ))
     )]
     struct ApiDoc;
@@ -126,6 +159,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
         .route("/clear_govee_queue", get(get_clear_govee_queue))
             .with_state(Arc::clone(&function_queue))
         .route("/power", put(put_power))
+            .with_state(Arc::clone(&function_queue))
+        .route("/brightness", put(put_brightness))
             .with_state(Arc::clone(&function_queue))
     ;
 
