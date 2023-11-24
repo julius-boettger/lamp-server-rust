@@ -60,20 +60,19 @@ async fn get_clear_govee_queue(
     message
 }
 
-// TODO implement function, write description
 #[utoipa::path(
     get,
     path = "/timers",
     responses((
         status = 200,
-        description = "",
+        description = "Get array of current timers.",
         body = Vec<Timer>
     ))
 )]
 async fn get_timers(
     State(timers): State<Timers>
-) -> &'static str {
-    ""
+) -> Json<Vec<Timer>> {
+    Json(timers.lock().await.clone())
 }
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
@@ -191,6 +190,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             PowerState,
             BrightnessState,
             ColorState,
+            Timer
         ))
     )]
     struct ApiDoc;

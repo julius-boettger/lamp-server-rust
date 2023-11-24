@@ -1,4 +1,6 @@
 use std::sync::Arc;
+use serde::Serialize;
+use utoipa::ToSchema;
 use tokio::sync::Mutex;
 use std::time::Duration;
 use crate::control::{
@@ -17,19 +19,24 @@ pub struct SimpleTimer {
     pub function: fn_queue::Element
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct Timer {
     pub enable: bool,
+    #[schema(inline)]
     pub timeday: TimeDay,
+    #[schema(inline)]
     pub action: TimerAction
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
+// results in { "type": "Sunrise", "params": { "duration_min": ... }}
+#[serde(tag = "type", content = "params")]
 pub enum TimerAction {
     /// alarm for waking up with sunrise.
     /// sunrise finishes on `timeday` and then stays on for `stay_on_for_min` before turning off.
     Sunrise {
         /// how long the sunrise should be
+        #[schema(minimum = 1)]
         duration_min: u8,
         /// how long the finished sunrise should stay on
         stay_on_for_min: u8

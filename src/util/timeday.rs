@@ -1,7 +1,20 @@
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, utoipa::ToSchema)]
 pub struct TimeDay {
+    #[schema(minimum = 0, maximum = 23)]
     hour: u8,
+    #[schema(minimum = 0, maximum = 59)]
     minute: u8,
+    // https://github.com/juhaku/utoipa/issues/570
+    #[schema(example = json!(vec![0u8]))]
+    #[schema(minimum = 0, maximum = 6/*, min_items = 1*/)]
+    /// array of at least one day (number from 0 to 6) <br>
+    /// 0 - monday <br>
+    /// 1 - tuesday <br>
+    /// 2 - wednesday <br>
+    /// 3 - thursday <br>
+    /// 4 - friday <br>
+    /// 5 - saturday <br>
+    /// 6 - sunday <br>
     days: Vec<u8>
 }
 
