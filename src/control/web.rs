@@ -57,7 +57,7 @@ async fn get_clear_govee_queue(
         println!("queueing setting default brightness and turning off...");
         govee_queue.push_back(SetState::Brightness(constants::govee::default_brightness::DAY));
         govee_queue.push_back(SetState::Power(false));
-    }));
+    })).await;
     message
 }
 
@@ -79,7 +79,7 @@ async fn put_power(
     let setstate = SetState::Power(powerstate.power);
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
-    }));
+    })).await;
     println!("queued {:?}", setstate);
     "queued requested state"
 }
@@ -111,7 +111,7 @@ async fn put_brightness(
     let setstate = SetState::Brightness(brightnessstate.brightness);
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
-    }));
+    })).await;
 
     println!("queued {:?}", setstate);
     "queued requested state"
@@ -145,7 +145,7 @@ async fn put_color(
     let setstate = SetState::Color((colorstate.r, colorstate.g, colorstate.b));
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
-    }));
+    })).await;
     println!("queued {:?}", setstate);
     "queued requested state"
 }
@@ -154,7 +154,7 @@ async fn put_color(
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
     use crate::res::constants::net::*;
     use control::timer::Timers;
-    use std::sync::Mutex;
+    use tokio::sync::Mutex;
     use axum::routing::{get, put};
     use axum::response::Redirect;
     use utoipa::OpenApi;

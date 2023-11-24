@@ -5,9 +5,10 @@ pub mod fn_queue;
 
 use crate::util::govee;
 use crate::res::constants;
+use std::sync::Arc;
 use govee::SetState;
+use tokio::sync::Mutex;
 use std::time::Duration;
-use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
 
 /// never terminates
@@ -57,9 +58,9 @@ pub async fn main_loop() {
 
     // actual main loop
     loop {
-        timer::check_timers(&simple_timers, &mut function_queue, &mut last_checked_time);
+        timer::check_timers(&simple_timers, &mut function_queue, &mut last_checked_time).await;
 
-        fn_queue::call_all(&mut function_queue, &mut govee_queue);
+        fn_queue::call_all(&mut function_queue, &mut govee_queue).await;
 
         if !govee_queue.is_empty() {
             let success = govee::set_state(*govee_queue.front().unwrap()).await;

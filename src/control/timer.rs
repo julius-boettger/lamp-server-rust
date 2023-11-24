@@ -1,5 +1,6 @@
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use std::time::Duration;
-use std::sync::{Arc, Mutex};
 use crate::control::{
     self,
     fn_queue,
@@ -36,15 +37,15 @@ pub enum TimerAction {
 }
 
 /// get a clone of the current value of `timers`
-pub fn get_clone(timers: &Timers) -> Vec<Timer> {
-    timers.lock().unwrap().clone()
+pub async fn get_clone(timers: &Timers) -> Vec<Timer> {
+    timers.lock().await.clone()
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.
-pub fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
+pub async fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
     let mut generated_timers: Vec<SimpleTimer> = vec![];
 
-    for timer in timers.lock().unwrap().iter() {
+    for timer in timers.lock().await.iter() {
         // skip disabled timers
         if !timer.enable { continue; }
         match timer.action {
@@ -75,23 +76,23 @@ pub fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
         }
     }
 
-    *simple_timers.lock().unwrap() = generated_timers;
+    *simple_timers.lock().await = generated_timers;
 }
 
 /// if a timer matches the current date/time: push its function to the function queue.
 /// update `last_checked` with the current time if timers have been checked.
-pub fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &mut fn_queue::Queue, last_checked: &mut TimeDay) {
+pub async fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &mut fn_queue::Queue, last_checked: &mut TimeDay) {
     let now = TimeDay::now();
     // if timers have already been checked this minute
     if now == *last_checked {
         return;
     }
 
-    for timer in simple_timers.lock().unwrap().iter() {
+    for timer in simple_timers.lock().await.iter() {
         if timer.timeday.get_days().contains(&now.get_days()[0])
         && timer.timeday.get_hour() == now.get_hour()
         && timer.timeday.get_minute() == now.get_minute() {
-            fn_queue::enqueue(&mut function_queue, Arc::clone(&timer.function));
+            fn_queue::enqueue(&mut function_queue, Arc::clone(&timer.function)).await;
             println!("matched timer for {:02}:{:02} on days {:?}",
                 timer.timeday.get_hour(),
                 timer.timeday.get_minute(),
