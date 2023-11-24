@@ -5,8 +5,8 @@ use crate::control::{
     self,
     fn_queue,
     SetState,
-    timeday::TimeDay
 };
+use crate::util::timeday::TimeDay;
 
 pub type SimpleTimers = Arc<Mutex<Vec<SimpleTimer>>>;
 pub type Timers = Arc<Mutex<Vec<Timer>>>;

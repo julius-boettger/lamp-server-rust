@@ -1,6 +1,5 @@
 pub mod web;
 pub mod timer;
-pub mod timeday;
 pub mod fn_queue;
 
 use crate::util::govee;
@@ -18,7 +17,7 @@ pub async fn main_loop() {
     use constants::sunrise::*;
     use std::thread::sleep;
     use timer::SimpleTimers;
-    use timeday::TimeDay;
+    use crate::util::timeday::TimeDay;
 
     if govee_brightness::START >= govee_brightness::STOP {
         panic!("sunrise brightness has to start smaller than it stops");

@@ -1,3 +1,6 @@
+/// timezone to use for timers
+pub const TIMEZONE: chrono_tz::Tz = chrono_tz::Europe::Berlin;
+
 pub mod govee {
     use std::time::Duration;
     /// this is the max api request rate.

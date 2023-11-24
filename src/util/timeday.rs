@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct TimeDay {
     hour: u8,
     minute: u8,
@@ -15,12 +15,12 @@ impl TimeDay {
         instance
     }
 
-    /// current time and weekday in berlin, germany
+    /// current time and weekday based on `TIMEZONE` constant
     pub fn now() -> Self {
         use chrono::{Utc, Timelike, Datelike};
-        use chrono_tz::Europe::Berlin;
+        use crate::res::constants::TIMEZONE;
 
-        let now = Utc::now().with_timezone(&Berlin);
+        let now = Utc::now().with_timezone(&TIMEZONE);
         Self::new(
             now.hour() as u8,
             now.minute() as u8,

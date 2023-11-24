@@ -1,4 +1,5 @@
 pub mod govee;
+pub mod timeday;
 
 pub enum HttpMethod {
     Get,
