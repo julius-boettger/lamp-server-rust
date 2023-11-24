@@ -177,7 +177,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
     #[derive(OpenApi)]
     #[openapi(
         paths(
-            // functions with utoipa::path attributes
+            // functions with #[utoipa::path(...)]
             get_state,
             get_clear_govee_queue,
             put_power,
@@ -186,6 +186,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             get_timers,
         ),
         components(schemas(
+            // enums/structs with #[derive(utoipa::ToSchema)]
             govee::GetState,
             PowerState,
             BrightnessState,
