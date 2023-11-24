@@ -42,10 +42,11 @@ pub async fn get_clone(timers: &Timers) -> Vec<Timer> {
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.
-pub async fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
+pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
     let mut generated_timers: Vec<SimpleTimer> = vec![];
 
-    for timer in timers.lock().await.iter() {
+    let timers = timers.lock().await;
+    for timer in timers.iter() {
         // skip disabled timers
         if !timer.enable { continue; }
         match timer.action {
@@ -76,12 +77,13 @@ pub async fn process_timers(timers: &Timers, simple_timers: &mut SimpleTimers) {
         }
     }
 
+    println!("updated timers with {} generated simple timer(s) from {} complex timer(s)", generated_timers.len(), timers.len());
     *simple_timers.lock().await = generated_timers;
 }
 
 /// if a timer matches the current date/time: push its function to the function queue.
 /// update `last_checked` with the current time if timers have been checked.
-pub async fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &mut fn_queue::Queue, last_checked: &mut TimeDay) {
+pub async fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &fn_queue::Queue, last_checked: &mut TimeDay) {
     let now = TimeDay::now();
     // if timers have already been checked this minute
     if now == *last_checked {

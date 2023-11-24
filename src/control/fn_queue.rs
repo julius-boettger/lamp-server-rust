@@ -5,11 +5,10 @@ use crate::control::govee::SetState;
 
 /// take govee_queue as argument
 pub type Element = Arc<dyn Fn(&mut VecDeque<SetState>) -> () + Send + Sync>;
-// TODO use tokio::sync::Mutex?
 pub type Queue = Arc<Mutex<VecDeque<Element>>>;
 
 /// call and then remove each function, starting from the front.
-pub async fn call_all(function_queue: &mut Queue, govee_queue: &mut VecDeque<SetState>) {
+pub async fn call_all(function_queue: &Queue, govee_queue: &mut VecDeque<SetState>) {
     let mut function_queue = function_queue.lock().await;
     // call all functions
     while !function_queue.is_empty() {
@@ -17,6 +16,6 @@ pub async fn call_all(function_queue: &mut Queue, govee_queue: &mut VecDeque<Set
     }
 }
 
-pub async fn enqueue(function_queue: &mut Queue, function: Element) {
+pub async fn enqueue(function_queue: &Queue, function: Element) {
     function_queue.lock().await.push_back(function);
 }
