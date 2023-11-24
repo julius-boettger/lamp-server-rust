@@ -6,13 +6,14 @@ use utoipa::{IntoParams, ToSchema};
 use crate::util::govee;
 use crate::res::constants;
 use crate::control::{
+    timer::*,
     fn_queue,
-    govee::SetState,
-    timer::*
+    govee::SetState
 };
 
 // TODO return json instead of plain strings...?
 // TODO document different status codes for wrong json, ...
+// TODO check that every schema property has annotated ranges
 
 // TODO return different status code instead of default
 #[utoipa::path(
@@ -73,6 +74,48 @@ async fn get_timers(
     State(timers): State<Timers>
 ) -> Json<Vec<Timer>> {
     Json(timers.lock().await.clone())
+}
+
+// TODO fix or document missing params
+#[utoipa::path(
+    put,
+    path = "/timers",
+    responses((
+        status = 200,
+        description = "Set timers to provided array of timers. Return response message.",
+    ))
+)]
+async fn put_timers(
+    State(state): State<(Timers, SimpleTimers)>,
+    extract::Json(new_timers): extract::Json<Vec<Timer>>
+) -> &'static str {
+    // validate new timers
+    for timer in new_timers.iter() {
+        if *timer.timeday.get_hour() > 23 {
+            return "timeday.hour must be <= 23";
+        }
+        if *timer.timeday.get_minute() > 59 {
+            return "timeday.minute must be <= 59";
+        }
+        if timer.timeday.get_days().is_empty() {
+            return "timeday.days must not be empty";
+        }
+        if timer.timeday.get_days().iter().any(|&d| d > 6) {
+            return "every day in timeday.days has to be <= 6";
+        }
+        match timer.action {
+            TimerAction::Sunrise { duration_min, .. } => {
+                if duration_min < 1 {
+                    return "action.params.duration_min has to be >= 1";
+                }
+            }
+        }
+    }
+
+    let (timers, simple_timers) = state;
+    *timers.lock().await = new_timers;
+    process_timers(&timers, &simple_timers).await;
+    "timers updated."
 }
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
@@ -184,6 +227,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             put_brightness,
             put_color,
             get_timers,
+            put_timers
         ),
         components(schemas(
             // enums/structs with #[derive(utoipa::ToSchema)]
@@ -197,7 +241,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
     struct ApiDoc;
 
     // higher level timers which will be converted and pushed to `simple_timers`
-    let mut timers: Timers = Arc::new(Mutex::new(vec![]));
+    let timers: Timers = Arc::new(Mutex::new(vec![]));
 
     // configure routes
     let app = axum::Router::new()
@@ -211,8 +255,6 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
 
         // actual api
         .route("/state", get(get_state))
-        .route("/timers", get(get_timers))
-            .with_state(Arc::clone(&timers))
         .route("/clear_govee_queue", get(get_clear_govee_queue))
             .with_state(Arc::clone(&function_queue))
         .route("/power", put(put_power))
@@ -221,6 +263,10 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             .with_state(Arc::clone(&function_queue))
         .route("/color", put(put_color))
             .with_state(Arc::clone(&function_queue))
+        .route("/timers", get(get_timers))
+            .with_state(Arc::clone(&timers))
+        .route("/timers", put(put_timers))
+            .with_state((Arc::clone(&timers), Arc::clone(&simple_timers)))
     ;
 
     // start server

@@ -5,6 +5,8 @@ enable govee debug mode:
     rustflags = "--cfg govee_debug"
 */
 
+// TODO check warnings
+
 mod res;
 mod util;
 mod control;

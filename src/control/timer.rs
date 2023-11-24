@@ -1,17 +1,19 @@
 use std::sync::Arc;
-use serde::Serialize;
 use utoipa::ToSchema;
 use tokio::sync::Mutex;
 use std::time::Duration;
+use crate::util::timeday::TimeDay;
+use serde::{Serialize, Deserialize};
 use crate::control::{
     self,
     fn_queue,
-    SetState,
+    SetState
 };
-use crate::util::timeday::TimeDay;
 
 pub type SimpleTimers = Arc<Mutex<Vec<SimpleTimer>>>;
 pub type Timers = Arc<Mutex<Vec<Timer>>>;
+
+// TODO make fields private, use getters/setters/constructers
 
 pub struct SimpleTimer {
     pub timeday: TimeDay,
@@ -19,7 +21,7 @@ pub struct SimpleTimer {
     pub function: fn_queue::Element
 }
 
-#[derive(Debug, Clone, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Timer {
     pub enable: bool,
     #[schema(inline)]
@@ -28,7 +30,7 @@ pub struct Timer {
     pub action: TimerAction
 }
 
-#[derive(Debug, Clone, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 // results in { "type": "Sunrise", "params": { "duration_min": ... }}
 #[serde(tag = "type", content = "params")]
 pub enum TimerAction {
@@ -84,6 +86,7 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
         }
     }
 
+    // TODO print activation times of timers, TimeDay pretty print?
     println!("updated timers with {} generated simple timer(s) from {} complex timer(s)", generated_timers.len(), timers.len());
     *simple_timers.lock().await = generated_timers;
 }
