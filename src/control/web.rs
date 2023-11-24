@@ -6,10 +6,9 @@ use utoipa::{IntoParams, ToSchema};
 use crate::util::govee;
 use crate::res::constants;
 use crate::control::{
-    self,
     fn_queue,
     govee::SetState,
-    timer::SimpleTimers
+    timer::*
 };
 
 // TODO return json instead of plain strings...?
@@ -59,6 +58,22 @@ async fn get_clear_govee_queue(
         govee_queue.push_back(SetState::Power(false));
     })).await;
     message
+}
+
+// TODO implement function, write description
+#[utoipa::path(
+    get,
+    path = "/timers",
+    responses((
+        status = 200,
+        description = "",
+        body = Vec<Timer>
+    ))
+)]
+async fn get_timers(
+    State(timers): State<Timers>
+) -> &'static str {
+    ""
 }
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
@@ -153,7 +168,6 @@ async fn put_color(
 /// start webserver. never terminates.
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
     use crate::res::constants::net::*;
-    use control::timer::Timers;
     use tokio::sync::Mutex;
     use axum::routing::{get, put};
     use axum::response::Redirect;
@@ -170,6 +184,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             put_power,
             put_brightness,
             put_color,
+            get_timers,
         ),
         components(schemas(
             govee::GetState,
@@ -195,6 +210,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
 
         // actual api
         .route("/state", get(get_state))
+        .route("/timers", get(get_timers))
+            .with_state(Arc::clone(&timers))
         .route("/clear_govee_queue", get(get_clear_govee_queue))
             .with_state(Arc::clone(&function_queue))
         .route("/power", put(put_power))
