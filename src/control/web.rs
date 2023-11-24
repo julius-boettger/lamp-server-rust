@@ -13,6 +13,7 @@ use crate::control::{
 };
 
 // TODO return json instead of plain strings...?
+// TODO document different status codes for wrong json, ...
 
 // TODO return different status code instead of default
 #[utoipa::path(
@@ -61,7 +62,7 @@ async fn get_clear_govee_queue(
 }
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
-struct PowerState { value: bool }
+struct PowerState { power: bool }
 #[utoipa::path(
     put,
     path = "/power",
@@ -75,7 +76,7 @@ async fn put_power(
     State(mut function_queue): State<fn_queue::Queue>,
     extract::Json(powerstate): extract::Json<PowerState>
 ) -> &'static str {
-    let setstate = SetState::Power(powerstate.value);
+    let setstate = SetState::Power(powerstate.power);
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
     }));
@@ -87,7 +88,7 @@ async fn put_power(
 struct BrightnessState {
     #[ param(minimum = 1, maximum = 100)]
     #[schema(minimum = 1, maximum = 100)]
-    value: u8
+    brightness: u8
 }
 #[utoipa::path(
     put,
@@ -102,14 +103,16 @@ async fn put_brightness(
     State(mut function_queue): State<fn_queue::Queue>,
     extract::Json(brightnessstate): extract::Json<BrightnessState>
 ) -> &'static str {
-    if brightnessstate.value < 1 || brightnessstate.value > 100 {
+    if brightnessstate.brightness < 1 || brightnessstate.brightness > 100 {
         // TODO return different status code
         return "wrong range";
     }
-    let setstate = SetState::Brightness(brightnessstate.value);
+
+    let setstate = SetState::Brightness(brightnessstate.brightness);
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
     }));
+
     println!("queued {:?}", setstate);
     "queued requested state"
 }
