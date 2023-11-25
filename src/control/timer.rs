@@ -45,11 +45,6 @@ pub enum TimerAction {
     }
 }
 
-/// get a clone of the current value of `timers`
-pub async fn get_clone(timers: &Timers) -> Vec<Timer> {
-    timers.lock().await.clone()
-}
-
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.
 pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
     let mut generated_timers: Vec<SimpleTimer> = vec![];

@@ -113,15 +113,3 @@ fn generate_sunrise(govee_queue: &mut VecDeque<SetState>, sunrise_duration: Dura
         sunrise_duration.as_secs_f32() / 60f32
     );
 }
-
-// append `SetState::Power(true)`s to simulate doing nothing for the given duration
-fn add_fillers(govee_queue: &mut VecDeque<SetState>, filler_duration: Duration) {
-    use crate::res::constants::govee::*;
-
-    let state_amount = filler_duration.as_millis() /
-        (API_REQUEST_INTERVAL.as_millis() + AVG_SET_STATE_DURATION.as_millis());
-
-    for _ in 0..state_amount {
-        govee_queue.push_back(SetState::Power(true));
-    }
-}

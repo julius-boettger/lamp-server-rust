@@ -14,7 +14,7 @@ pub mod govee {
     pub const AVG_SET_STATE_DURATION: Duration = Duration::from_millis(500);
     pub mod default_brightness {
         pub const DAY: u8 = 15;
-        pub const NIGHT: u8 = 1;
+        //pub const NIGHT: u8 = 1;
     }
 }
 
