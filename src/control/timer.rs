@@ -105,6 +105,7 @@ pub async fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &fn_
         && timer.timeday.get_hour() == now.get_hour()
         && timer.timeday.get_minute() == now.get_minute() {
             fn_queue::enqueue(&mut function_queue, Arc::clone(&timer.function)).await;
+            // also use TimeDay pretty print
             println!("matched timer for {:02}:{:02} on days {:?}",
                 timer.timeday.get_hour(),
                 timer.timeday.get_minute(),
