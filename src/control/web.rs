@@ -6,6 +6,7 @@ use crate::res::constants;
 use axum::{
     Json,
     TypedHeader,
+    http::StatusCode as Code,
     extract::{self, State},
     headers::{Authorization, authorization::Basic}
 };
@@ -15,9 +16,21 @@ use crate::control::{
     govee::SetState
 };
 
-// TODO return json instead of plain strings...?
-// TODO document different status codes for wrong json, ...
+// TODO document authorization headers
+// TODO document different status codes for wrong json, authorization, ...
 // TODO check that every schema property has annotated ranges
+
+type Response<T> = Result<T, (Code, &'static str)>;
+
+/// require basic authentication with password equal to sha256 of govee api key (case insensitive)
+fn authorize(auth: Authorization<Basic>) -> Response<()> {
+    use crate::res::secrets::govee::API_KEY;
+    if !auth.0.password().eq_ignore_ascii_case(sha256::digest(API_KEY).as_str()) {
+        // TODO better message
+        return Err((Code::UNAUTHORIZED, "unauthorized"));
+    }
+    Ok(())
+}
 
 // TODO return different status code instead of default
 #[utoipa::path(
@@ -31,24 +44,17 @@ use crate::control::{
 )]
 async fn get_state(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>
-) -> Json<govee::GetState> {
-
-    // TODO extract to own method, use for all routes
-    use crate::res::secrets::govee::API_KEY;
-    if auth.0.password() != sha256::digest(API_KEY) {
-        // TODO return different status code
-        return;
-    }
-
+) -> Response<Json<govee::GetState>> {
+    authorize(auth)?;
     let result = govee::get_state().await;
     if let Ok(state) = result {
-        Json(state)
+        Ok(Json(state))
     } else {
-        Json(govee::GetState {
+        Ok(Json(govee::GetState {
             rgb_color: (255, 255, 255),
             brightness: 100,
             power: false
-        })
+        }))
     }
 }
 
@@ -61,8 +67,10 @@ async fn get_state(
     ))
 )]
 async fn get_clear_govee_queue(
+    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(mut function_queue): State<fn_queue::Queue>
-) -> &'static str {
+) -> Response<&'static str> {
+    authorize(auth)?;
     let message = "queued clearing Govee API call queue, setting brightness and turning off";
     println!("{}", message);
     fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue| {
@@ -72,7 +80,7 @@ async fn get_clear_govee_queue(
         govee_queue.push_back(SetState::Brightness(constants::govee::default_brightness::DAY));
         govee_queue.push_back(SetState::Power(false));
     })).await;
-    message
+    Ok(message)
 }
 
 #[utoipa::path(
@@ -85,9 +93,11 @@ async fn get_clear_govee_queue(
     ))
 )]
 async fn get_timers(
+    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(timers): State<Timers>
-) -> Json<Vec<Timer>> {
-    Json(timers.lock().await.clone())
+) -> Response<Json<Vec<Timer>>> {
+    authorize(auth)?;
+    Ok(Json(timers.lock().await.clone()))
 }
 
 // TODO fix or document missing params
@@ -100,27 +110,30 @@ async fn get_timers(
     ))
 )]
 async fn put_timers(
+    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(state): State<(Timers, SimpleTimers)>,
     extract::Json(new_timers): extract::Json<Vec<Timer>>
-) -> &'static str {
+) -> Response<&'static str> {
+    authorize(auth)?;
+
     // validate new timers
     for timer in new_timers.iter() {
         if *timer.timeday.get_hour() > 23 {
-            return "timeday.hour must be <= 23";
+            return Err((Code::UNPROCESSABLE_ENTITY, "timeday.hour must be <= 23"));
         }
         if *timer.timeday.get_minute() > 59 {
-            return "timeday.minute must be <= 59";
+            return Err((Code::UNPROCESSABLE_ENTITY, "timeday.minute must be <= 59"));
         }
         if timer.timeday.get_days().is_empty() {
-            return "timeday.days must not be empty";
+            return Err((Code::UNPROCESSABLE_ENTITY, "timeday.days must not be empty"));
         }
         if timer.timeday.get_days().iter().any(|&d| d > 6) {
-            return "every day in timeday.days has to be <= 6";
+            return Err((Code::UNPROCESSABLE_ENTITY, "every day in timeday.days has to be <= 6"));
         }
         match timer.action {
             TimerAction::Sunrise { duration_min, .. } => {
                 if duration_min < 1 {
-                    return "action.params.duration_min has to be >= 1";
+                    return Err((Code::UNPROCESSABLE_ENTITY, "action.params.duration_min has to be >= 1"));
                 }
             }
         }
@@ -129,7 +142,7 @@ async fn put_timers(
     let (timers, simple_timers) = state;
     *timers.lock().await = new_timers;
     process_timers(&timers, &simple_timers).await;
-    "timers updated."
+    Ok("timers updated.")
 }
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
@@ -144,15 +157,17 @@ struct PowerState { power: bool }
     ))
 )]
 async fn put_power(
+    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(mut function_queue): State<fn_queue::Queue>,
     extract::Json(powerstate): extract::Json<PowerState>
-) -> &'static str {
+) -> Response<&'static str> {
+    authorize(auth)?;
     let setstate = SetState::Power(powerstate.power);
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
     })).await;
     println!("queued {:?}", setstate);
-    "queued requested state"
+    Ok("queued requested state")
 }
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
@@ -171,12 +186,15 @@ struct BrightnessState {
     ))
 )]
 async fn put_brightness(
+    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(mut function_queue): State<fn_queue::Queue>,
     extract::Json(brightnessstate): extract::Json<BrightnessState>
-) -> &'static str {
+) -> Response<&'static str> {
+    authorize(auth)?;
+
     if brightnessstate.brightness < 1 || brightnessstate.brightness > 100 {
-        // TODO return different status code
-        return "wrong range";
+        // TODO better message
+        return Err((Code::UNPROCESSABLE_ENTITY, "wrong range"));
     }
 
     let setstate = SetState::Brightness(brightnessstate.brightness);
@@ -185,7 +203,7 @@ async fn put_brightness(
     })).await;
 
     println!("queued {:?}", setstate);
-    "queued requested state"
+    Ok("queued requested state")
 }
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
@@ -210,15 +228,17 @@ struct ColorState {
     ))
 )]
 async fn put_color(
+    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(mut function_queue): State<fn_queue::Queue>,
     extract::Json(colorstate): extract::Json<ColorState>
-) -> &'static str {
+) -> Response<&'static str> {
+    authorize(auth)?;
     let setstate = SetState::Color((colorstate.r, colorstate.g, colorstate.b));
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
     })).await;
     println!("queued {:?}", setstate);
-    "queued requested state"
+    Ok("queued requested state")
 }
 
 /// start webserver. never terminates.
