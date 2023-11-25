@@ -1,10 +1,14 @@
-use axum::Json;
 use std::sync::Arc;
 use serde::Deserialize;
-use axum::extract::{self, State};
 use utoipa::{IntoParams, ToSchema};
 use crate::util::govee;
 use crate::res::constants;
+use axum::{
+    Json,
+    TypedHeader,
+    extract::{self, State},
+    headers::{Authorization, authorization::Basic}
+};
 use crate::control::{
     timer::*,
     fn_queue,
@@ -25,7 +29,17 @@ use crate::control::{
         body = GetState
     ))
 )]
-async fn get_state() -> Json<govee::GetState> {
+async fn get_state(
+    TypedHeader(auth): TypedHeader<Authorization<Basic>>
+) -> Json<govee::GetState> {
+
+    // TODO extract to own method, use for all routes
+    use crate::res::secrets::govee::API_KEY;
+    if auth.0.password() != sha256::digest(API_KEY) {
+        // TODO return different status code
+        return;
+    }
+
     let result = govee::get_state().await;
     if let Ok(state) = result {
         Json(state)

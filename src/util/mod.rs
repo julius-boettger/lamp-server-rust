@@ -7,10 +7,6 @@ pub enum HttpMethod {
     Put(String)
 }
 
-pub fn digest_sha256(string: &str) -> String {
-    sha256::digest(string)
-}
-
 pub async fn send_api_request(method: HttpMethod, url: &str, headers: Option<Vec<(&str, &str)>>) -> Result<serde_json::Value, &'static str> {
     let client =  reqwest::Client::new();
     let mut request = match method {
