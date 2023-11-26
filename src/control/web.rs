@@ -101,6 +101,8 @@ async fn get_timers(
 }
 
 // TODO fix or document missing params
+// TODO set 7 days max, filter duplicates
+// TODO filter timer duplicates
 #[utoipa::path(
     put,
     path = "/timers",

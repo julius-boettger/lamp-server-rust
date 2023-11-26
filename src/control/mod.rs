@@ -30,11 +30,11 @@ pub async fn main_loop() {
         println!("GOVEE_DEBUG is enabled: not sending PUT requests to Govee API");
     }
 
-    // queue of `SetState`s of which the first one will be executed each iteration
+    // queue of `SetState`s of which the first one will be used for a Govee API call each iteration
     let mut govee_queue: VecDeque<SetState> = VecDeque::new();
 
-    // queue of functions to be executed once at the start of the next loop.
-    // all functions will be executed and then removed from the queue, starting from the front.
+    // queue of functions to be called once at the start of the next loop.
+    // all functions will be called and then removed from the queue, starting from the front.
     // each function has access to govee_queue.
     // confusing type is for thread safety.
     let mut function_queue: fn_queue::Queue = Arc::new(Mutex::new(VecDeque::new()));

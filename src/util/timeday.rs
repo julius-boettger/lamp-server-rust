@@ -108,6 +108,21 @@ impl TimeDay {
     }
 }
 
+// format like 15:20@["Mo", "Tu"]
+impl std::fmt::Display for TimeDay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "{:02}:{:02}@{:?}",
+            self.get_hour(),
+            self.get_minute(),
+            self.get_days().iter().map(|d| {
+                let days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+                days[*d as usize]
+            }).collect::<Vec<&str>>()
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

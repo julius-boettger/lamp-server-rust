@@ -81,8 +81,14 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
         }
     }
 
-    // TODO print activation times of timers, TimeDay pretty print?
     println!("updated timers with {} generated simple timer(s) from {} complex timer(s)", generated_timers.len(), timers.len());
+    if generated_timers.len() > 0 {
+        println!("activation times of generated timers are:");
+        for timer in generated_timers.iter() {
+            println!("{}", timer.timeday);
+        }
+    }
+
     *simple_timers.lock().await = generated_timers;
 }
 
@@ -100,12 +106,7 @@ pub async fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &fn_
         && timer.timeday.get_hour() == now.get_hour()
         && timer.timeday.get_minute() == now.get_minute() {
             fn_queue::enqueue(&mut function_queue, Arc::clone(&timer.function)).await;
-            // TODO also use TimeDay pretty print
-            println!("matched timer for {:02}:{:02} on days {:?}",
-                timer.timeday.get_hour(),
-                timer.timeday.get_minute(),
-                timer.timeday.get_days()
-            );
+            println!("matched timer for {}, calling function...", timer.timeday);
         }
     }
 
