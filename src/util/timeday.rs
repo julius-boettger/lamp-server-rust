@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct TimeDay {
     #[schema(minimum = 0, maximum = 23)]
@@ -6,8 +8,8 @@ pub struct TimeDay {
     minute: u8,
     // https://github.com/juhaku/utoipa/issues/570
     #[schema(example = json!(vec![0u8]))]
-    #[schema(minimum = 0, maximum = 6/*, min_items = 1*/)]
-    /// array of at least one day (number from 0 to 6) <br>
+    #[schema(minimum = 0, maximum = 6/*, min_items = 1, max_items = 7*/)]
+    /// array of 1 to 7 days (number from 0 to 6) <br>
     /// 0 - monday <br>
     /// 1 - tuesday <br>
     /// 2 - wednesday <br>
@@ -89,8 +91,8 @@ impl TimeDay {
         self.minute = minute;
     }
 
-    // TODO set 7 days max, filter duplicates, sort
-    /// panics if value is out of range or vector is empty. <br>
+    /// panics if value is out of range (0 to 6), vector is empty or vector has > 7 elements.
+    /// duplicate elements will be removed and vector will be sorted. <br>
     /// 0 - monday <br>
     /// 1 - tuesday <br>
     /// 2 - wednesday <br>
@@ -102,10 +104,13 @@ impl TimeDay {
         if days.is_empty() {
             panic!("days must not be empty");
         }
+        if days.len() > 7 {
+            panic!("days must have <= 7 elements");
+        }
         if days.iter().any(|&d| d > 6) {
             panic!("every day has to be <= 6, days were {:?}", days);
         }
-        self.days = days;
+        self.days = days.into_iter().unique().sorted().collect_vec();
     }
 }
 
@@ -119,7 +124,7 @@ impl std::fmt::Display for TimeDay {
             self.get_days().iter().map(|d| {
                 let days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
                 days[*d as usize]
-            }).collect::<Vec<&str>>()
+            }).collect_vec()
         ))
     }
 }
@@ -150,7 +155,7 @@ mod tests {
     fn midnight_minute_shift() {
         let timeday = TimeDay::new(0, 15, vec![0, 1]);
         let result = timeday.shift_time(0, -16);
-        assert_eq!(*result.get_days(), vec![6, 0]);
+        assert_eq!(*result.get_days(), vec![0, 6]);
         assert_eq!(*result.get_hour(), 23);
         assert_eq!(*result.get_minute(), 59);
     }
@@ -177,7 +182,7 @@ mod tests {
     fn complex_forward_shift() {
         let timeday = TimeDay::new(21, 46, vec![0, 2, 3, 6]);
         let result = timeday.shift_time(3 + 24, 14);
-        assert_eq!(*result.get_days(), vec![2, 4, 5, 1]);
+        assert_eq!(*result.get_days(), vec![1, 2, 4, 5]);
         assert_eq!(*result.get_hour(), 1);
         assert_eq!(*result.get_minute(), 0);
     }
@@ -186,8 +191,20 @@ mod tests {
     fn complex_backward_shift() {
         let timeday = TimeDay::new(3, 4, vec![0, 2, 3, 6]);
         let result = timeday.shift_time(-12 - 24, -4);
-        assert_eq!(*result.get_days(), vec![5, 0, 1, 4]);
+        assert_eq!(*result.get_days(), vec![0, 1, 4, 5]);
         assert_eq!(*result.get_hour(), 15);
         assert_eq!(*result.get_minute(), 0);
+    }
+
+    #[test]
+    fn duplicate_days() {
+        let timeday = TimeDay::new(0, 0, vec![0, 0, 0, 1, 2, 2, 3]);
+        assert_eq!(*timeday.get_days(), vec![0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn unsorted_days() {
+        let timeday = TimeDay::new(0, 0, vec![1, 2, 0, 3, 5, 6, 4]);
+        assert_eq!(*timeday.get_days(), vec![0, 1, 2, 3, 4, 5, 6]);
     }
 }

@@ -120,6 +120,9 @@ async fn put_timers(
         if timer.timeday.get_days().is_empty() {
             return Err((Code::UNPROCESSABLE_ENTITY, "timeday.days must not be empty"));
         }
+        if timer.timeday.get_days().len() > 7 {
+            return Err((Code::UNPROCESSABLE_ENTITY, "timeday.days must have <= 7 elements"));
+        }
         if timer.timeday.get_days().iter().any(|&d| d > 6) {
             return Err((Code::UNPROCESSABLE_ENTITY, "every day in timeday.days has to be <= 6"));
         }
