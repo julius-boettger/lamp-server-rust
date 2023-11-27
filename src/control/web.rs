@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use serde::Deserialize;
+use itertools::Itertools;
 use utoipa::{IntoParams, ToSchema};
 use crate::util::govee;
 use crate::res::constants;
@@ -93,13 +94,12 @@ async fn get_timers(
 }
 
 // TODO fix or document missing params
-// TODO filter timer duplicates
 #[utoipa::path(
     put,
     path = "/timers",
     responses((
         status = 200,
-        description = "Set timers to provided array of timers. Return response message.",
+        description = "Set timers to provided array of timers. Duplicates will be removed. Return response message.",
     ))
 )]
 async fn put_timers(
@@ -108,6 +108,9 @@ async fn put_timers(
     extract::Json(new_timers): extract::Json<Vec<Timer>>
 ) -> Response<&'static str> {
     authorize(auth)?;
+
+    // remove duplicates
+    let new_timers = new_timers.into_iter().unique().collect_vec();
 
     // validate new timers
     for timer in new_timers.iter() {

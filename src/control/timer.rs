@@ -21,7 +21,7 @@ pub struct SimpleTimer {
     pub function: fn_queue::Element
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq, Eq, Hash)]
 pub struct Timer {
     pub enable: bool,
     #[schema(inline)]
@@ -30,7 +30,7 @@ pub struct Timer {
     pub action: TimerAction
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq, Eq, Hash)]
 // results in { "type": "Sunrise", "params": { "duration_min": ... }}
 #[serde(tag = "type", content = "params")]
 pub enum TimerAction {
