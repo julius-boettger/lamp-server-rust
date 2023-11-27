@@ -17,15 +17,14 @@ use crate::control::{
     govee::SetState
 };
 
-// TODO document authorization headers
-
 type Response<T> = Result<T, (Code, &'static str)>;
 
-/// require basic authentication with password equal to sha256 of govee api key (case insensitive)
+// TODO replace with middleware?
+/// require basic authorization with password equal to sha256 of govee api key (case insensitive)
 fn authorize(auth: Authorization<Basic>) -> Response<()> {
     use crate::res::secrets::govee::API_KEY;
     if !auth.0.password().eq_ignore_ascii_case(sha256::digest(API_KEY).as_str()) {
-        return Err((Code::UNAUTHORIZED, "password in basic authentication header is incorrect. expected sha256 of Govee API key (case insensitive)."));
+        return Err((Code::UNAUTHORIZED, "password in basic authorization header is incorrect. expected sha256 of Govee API key (case insensitive)."));
     }
     Ok(())
 }
@@ -37,7 +36,8 @@ fn authorize(auth: Authorization<Basic>) -> Response<()> {
         status = 200,
         description = "Get current state of lamp. Returns a default value on error.",
         body = GetState
-    ))
+    )),
+    security(("authorization" = [])) // require auth
 )]
 async fn get_state(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>
@@ -57,7 +57,8 @@ async fn get_state(
     responses((
         status = 200,
         description = "Clear queue of Govee API calls to make. Then set the brightness to a default value and turn the lamp off. Return response message."
-    ))
+    )),
+    security(("authorization" = [])) // require auth
 )]
 async fn get_clear_govee_queue(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>,
@@ -83,7 +84,8 @@ async fn get_clear_govee_queue(
         status = 200,
         description = "Get array of current timers.",
         body = Vec<Timer>
-    ))
+    )),
+    security(("authorization" = [])) // require auth
 )]
 async fn get_timers(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>,
@@ -100,7 +102,8 @@ async fn get_timers(
     responses((
         status = 200,
         description = "Set timers to provided array of timers. Duplicates will be removed. Return response message.",
-    ))
+    )),
+    security(("authorization" = [])) // require auth
 )]
 async fn put_timers(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>,
@@ -153,7 +156,8 @@ struct PowerState { power: bool }
     responses((
         status = 200,
         description = "Queue requested power state. Return response message."
-    ))
+    )),
+    security(("authorization" = [])) // require auth
 )]
 async fn put_power(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>,
@@ -182,7 +186,8 @@ struct BrightnessState {
     responses((
         status = 200,
         description = "Queue requested brightness state. Return response message."
-    ))
+    )),
+    security(("authorization" = [])) // require auth
 )]
 async fn put_brightness(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>,
@@ -223,7 +228,8 @@ struct ColorState {
     responses((
         status = 200,
         description = "Queue requested color state. Return response message."
-    ))
+    )),
+    security(("authorization" = [])) // require auth
 )]
 async fn put_color(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>,
@@ -245,12 +251,31 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
     use tokio::sync::Mutex;
     use axum::routing::{get, put};
     use axum::response::Redirect;
-    use utoipa::OpenApi;
     use utoipa_swagger_ui::SwaggerUi;
+    use utoipa::{
+        OpenApi,
+        openapi::security::{SecurityScheme, Http, HttpAuthScheme}
+    };
+
+    /// utility struct for utoipa to register basic http authorization.
+    /// this is necessary for showing an "Authorize" button in swagger-ui.
+    struct AuthHint;
+    impl utoipa::Modify for AuthHint {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                components.add_security_scheme(
+                    "authorization",
+                    SecurityScheme::Http(Http::new(HttpAuthScheme::Basic))
+                )
+            }
+        }
+    }
 
     // set up utoipa swagger ui
     #[derive(OpenApi)]
     #[openapi(
+        // use security scheme for basic http authorization
+        modifiers(&AuthHint),
         paths(
             // functions with #[utoipa::path(...)]
             get_state,

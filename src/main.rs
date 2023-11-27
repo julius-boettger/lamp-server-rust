@@ -6,6 +6,8 @@ enable govee debug mode:
 */
 
 // TODO check warnings
+// TODO use more match instead of if
+// TODO improve project structure
 
 mod res;
 mod util;
