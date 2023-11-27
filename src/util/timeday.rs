@@ -89,6 +89,7 @@ impl TimeDay {
         self.minute = minute;
     }
 
+    // TODO set 7 days max, filter duplicates, sort
     /// panics if value is out of range or vector is empty. <br>
     /// 0 - monday <br>
     /// 1 - tuesday <br>

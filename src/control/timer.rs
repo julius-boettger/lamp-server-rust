@@ -38,9 +38,10 @@ pub enum TimerAction {
     /// sunrise finishes on `timeday` and then stays on for `stay_on_for_min` before turning off.
     Sunrise {
         /// how long the sunrise should be
-        #[schema(minimum = 1)]
+        #[schema(minimum = 1, maximum = 255)]
         duration_min: u8,
         /// how long the finished sunrise should stay on
+        #[schema(minimum = 0, maximum = 255)]
         stay_on_for_min: u8
     }
 }

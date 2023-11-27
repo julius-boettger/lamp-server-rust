@@ -17,8 +17,6 @@ use crate::control::{
 };
 
 // TODO document authorization headers
-// TODO document different status codes for wrong json, authorization, ...
-// TODO check that every schema property has annotated ranges
 
 type Response<T> = Result<T, (Code, &'static str)>;
 
@@ -26,13 +24,11 @@ type Response<T> = Result<T, (Code, &'static str)>;
 fn authorize(auth: Authorization<Basic>) -> Response<()> {
     use crate::res::secrets::govee::API_KEY;
     if !auth.0.password().eq_ignore_ascii_case(sha256::digest(API_KEY).as_str()) {
-        // TODO better message
-        return Err((Code::UNAUTHORIZED, "unauthorized"));
+        return Err((Code::UNAUTHORIZED, "password in basic authentication header is incorrect. expected sha256 of Govee API key (case insensitive)."));
     }
     Ok(())
 }
 
-// TODO return different status code instead of default
 #[utoipa::path(
     get,
     path = "/state",
@@ -50,11 +46,7 @@ async fn get_state(
     if let Ok(state) = result {
         Ok(Json(state))
     } else {
-        Ok(Json(govee::GetState {
-            rgb_color: (255, 255, 255),
-            brightness: 100,
-            power: false
-        }))
+        Err((Code::INTERNAL_SERVER_ERROR, "could not get state. likely because of Govee API rate limit."))
     }
 }
 
@@ -101,7 +93,6 @@ async fn get_timers(
 }
 
 // TODO fix or document missing params
-// TODO set 7 days max, filter duplicates
 // TODO filter timer duplicates
 #[utoipa::path(
     put,
@@ -195,8 +186,7 @@ async fn put_brightness(
     authorize(auth)?;
 
     if brightnessstate.brightness < 1 || brightnessstate.brightness > 100 {
-        // TODO better message
-        return Err((Code::UNPROCESSABLE_ENTITY, "wrong range"));
+        return Err((Code::UNPROCESSABLE_ENTITY, "brightness must be from 1 to 100"));
     }
 
     let setstate = SetState::Brightness(brightnessstate.brightness);
