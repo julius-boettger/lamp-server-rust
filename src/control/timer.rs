@@ -1,11 +1,9 @@
-use std::sync::Arc;
 use utoipa::ToSchema;
 use tokio::sync::Mutex;
-use std::time::Duration;
-use crate::util::govee::SetState;
-use crate::util::timeday::TimeDay;
 use serde::{Serialize, Deserialize};
-use crate::control::{fn_queue, state};
+use std::{time::Duration, sync::Arc};
+use crate::control::state;
+use crate::util::{govee_api::SetState, timeday::TimeDay, fn_queue};
 
 pub type SimpleTimers = Arc<Mutex<Vec<SimpleTimer>>>;
 pub type Timers = Arc<Mutex<Vec<Timer>>>;
@@ -74,7 +72,7 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                         stay_on_for_min as i8
                     ),
                     function: Arc::new(|govee_queue| {
-                        use crate::res::constants::govee::default_brightness::DAY;
+                        use crate::constants::brightness::DAY;
                         govee_queue.push_back(SetState::Brightness(DAY));
                         govee_queue.push_back(SetState::Power(false));
                     })

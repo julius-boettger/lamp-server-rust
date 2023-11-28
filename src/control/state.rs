@@ -1,11 +1,10 @@
-use crate::res::constants;
-use std::time::Duration;
-use std::collections::VecDeque;
-use crate::util::govee::SetState;
+use std::{time::Duration, collections::VecDeque};
+use crate::constants;
+use crate::util::govee_api::SetState;
 
 /// set brightness to default for night and color to nice warm white
 pub fn nightlamp(govee_queue: &mut VecDeque<SetState>) {
-    use constants::{govee::default_brightness::NIGHT, colors::NIGHTLAMP};
+    use constants::{brightness::NIGHT, colors::NIGHTLAMP};
     govee_queue.push_back(SetState::Brightness(NIGHT));
     govee_queue.push_back(SetState::Color(NIGHTLAMP));
 }

@@ -6,11 +6,10 @@ enable govee debug mode:
 */
 
 // TODO check warnings
-// TODO improve project structure
 
-mod res;
 mod util;
 mod control;
+mod constants;
 
 #[tokio::main]
 async fn main() {

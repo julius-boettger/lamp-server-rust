@@ -1,18 +1,14 @@
 pub mod web;
 pub mod state;
 pub mod timer;
-pub mod fn_queue;
 
 /// never terminates
 pub async fn main_loop() {
-    use std::thread::sleep;
-    use crate::res::constants::{sunrise::*, govee::API_REQUEST_INTERVAL};
-    use std::sync::Arc;
     use tokio::sync::Mutex;
     use timer::SimpleTimers;
-    use std::collections::VecDeque;
-    use crate::util::timeday::TimeDay;
-    use crate::util::govee::{self, SetState};
+    use std::{collections::VecDeque, sync::Arc, thread::sleep};
+    use crate::constants::{sunrise::*, govee::API_REQUEST_INTERVAL};
+    use crate::util::{fn_queue, timeday::TimeDay, govee_api::{self, SetState}};
 
     if govee_brightness::START >= govee_brightness::STOP {
         panic!("sunrise brightness has to start smaller than it stops");
@@ -57,7 +53,7 @@ pub async fn main_loop() {
         fn_queue::call_all(&mut function_queue, &mut govee_queue).await;
 
         if !govee_queue.is_empty() {
-            let success = govee::set_state(*govee_queue.front().unwrap()).await;
+            let success = govee_api::set_state(*govee_queue.front().unwrap()).await;
             match success {
                 true  => { govee_queue.pop_front(); },
                 false => println!("setting state failed, trying again")

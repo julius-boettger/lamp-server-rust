@@ -2,9 +2,9 @@ use std::sync::Arc;
 use serde::Deserialize;
 use itertools::Itertools;
 use utoipa::{IntoParams, ToSchema};
-use crate::util::govee::{self, SetState};
-use crate::res::constants;
-use crate::control::{timer::*, fn_queue};
+use crate::constants;
+use crate::control::timer::*;
+use crate::util::{fn_queue, govee_api::{self, SetState}};
 use axum::{
     Json,
     TypedHeader,
@@ -20,7 +20,7 @@ type Response<T> = Result<T, (Code, &'static str)>;
 // TODO replace with middleware?
 /// require basic authorization with password equal to sha256 of govee api key (case insensitive)
 fn authorize(auth: Authorization<Basic>) -> Response<()> {
-    use crate::res::secrets::govee::API_KEY;
+    use constants::govee_secrets::API_KEY;
     if !auth.0.password().eq_ignore_ascii_case(sha256::digest(API_KEY).as_str()) {
         return Err((Code::UNAUTHORIZED, "password in basic authorization header is incorrect. expected sha256 of Govee API key (case insensitive)."));
     }
@@ -39,9 +39,9 @@ fn authorize(auth: Authorization<Basic>) -> Response<()> {
 )]
 async fn get_state(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>
-) -> Response<Json<govee::GetState>> {
+) -> Response<Json<govee_api::GetState>> {
     authorize(auth)?;
-    match govee::get_state().await {
+    match govee_api::get_state().await {
         Ok(state) => Ok(Json(state)),
         _ => Err((Code::INTERNAL_SERVER_ERROR,
                   "could not get state. likely because of Govee API rate limit."))
@@ -68,7 +68,7 @@ async fn get_clear_govee_queue(
         println!("{} elements in govee queue, clearing...", govee_queue.len());
         govee_queue.clear();
         println!("queueing setting default brightness and turning off...");
-        govee_queue.push_back(SetState::Brightness(constants::govee::default_brightness::DAY));
+        govee_queue.push_back(SetState::Brightness(constants::brightness::DAY));
         govee_queue.push_back(SetState::Power(false));
     })).await;
     Ok(message)
@@ -241,15 +241,11 @@ async fn put_color(
 
 /// start webserver. never terminates.
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
-    use crate::res::constants::net::*;
+    use constants::net::*;
     use tokio::sync::Mutex;
-    use axum::routing::{get, put};
-    use axum::response::Redirect;
     use utoipa_swagger_ui::SwaggerUi;
-    use utoipa::{
-        OpenApi,
-        openapi::security::{SecurityScheme, Http, HttpAuthScheme}
-    };
+    use axum::{response::Redirect, routing::{get, put}};
+    use utoipa::{OpenApi, openapi::security::{SecurityScheme, Http, HttpAuthScheme}};
 
     /// utility struct for utoipa to register basic http authorization.
     /// this is necessary for showing an "Authorize" button in swagger-ui.
@@ -282,7 +278,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
         ),
         components(schemas(
             // enums/structs with #[derive(utoipa::ToSchema)]
-            govee::GetState,
+            govee_api::GetState,
             PowerState,
             BrightnessState,
             ColorState,

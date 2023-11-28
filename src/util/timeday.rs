@@ -33,7 +33,7 @@ impl TimeDay {
     /// current time and weekday based on `TIMEZONE` constant
     pub fn now() -> Self {
         use chrono::{Utc, Timelike, Datelike};
-        use crate::res::constants::TIMEZONE;
+        use crate::constants::TIMEZONE;
 
         let now = Utc::now().with_timezone(&TIMEZONE);
         Self::new(
