@@ -5,9 +5,9 @@ use std::time::Duration;
 use crate::util::timeday::TimeDay;
 use serde::{Serialize, Deserialize};
 use crate::control::{
-    self,
     fn_queue,
-    SetState
+    SetState,
+    state_gen
 };
 
 pub type SimpleTimers = Arc<Mutex<Vec<SimpleTimer>>>;
@@ -64,7 +64,7 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                         - (duration_min as i8)
                     ),
                     function: Arc::new(move |govee_queue| {
-                        control::generate_sunrise(
+                        state_gen::sunrise(
                             govee_queue,
                             Duration::from_secs((duration_min as u64) * 60)
                         );
