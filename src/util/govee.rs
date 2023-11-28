@@ -71,12 +71,11 @@ pub async fn set_state(state: SetState) -> bool {
         Some(vec![("Govee-API-Key", govee::API_KEY), ("Content-Type", "application/json")])
     ).await;
 
-    let Ok(json) = result else {
-        return false;
-    };
-
-    // true if status code is 200
-    json["code"].as_u64().unwrap() == 200
+    match result {
+        // true if status code is 200
+        Ok(json) => json["code"].as_u64().unwrap() == 200,
+        _ => false
+    }
 }
 
 /// dependent on govee api.

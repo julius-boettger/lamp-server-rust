@@ -41,11 +41,10 @@ async fn get_state(
     TypedHeader(auth): TypedHeader<Authorization<Basic>>
 ) -> Response<Json<govee::GetState>> {
     authorize(auth)?;
-    let result = govee::get_state().await;
-    if let Ok(state) = result {
-        Ok(Json(state))
-    } else {
-        Err((Code::INTERNAL_SERVER_ERROR, "could not get state. likely because of Govee API rate limit."))
+    match govee::get_state().await {
+        Ok(state) => Ok(Json(state)),
+        _ => Err((Code::INTERNAL_SERVER_ERROR,
+                  "could not get state. likely because of Govee API rate limit."))
     }
 }
 
@@ -116,6 +115,7 @@ async fn put_timers(
 
     // validate new timers
     for timer in new_timers.iter() {
+        // TODO use match to get message
         if *timer.timeday.get_hour() > 23 {
             return Err((Code::UNPROCESSABLE_ENTITY, "timeday.hour must be <= 23"));
         }

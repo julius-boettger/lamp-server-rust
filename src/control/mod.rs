@@ -58,10 +58,9 @@ pub async fn main_loop() {
 
         if !govee_queue.is_empty() {
             let success = govee::set_state(*govee_queue.front().unwrap()).await;
-            if success {
-                govee_queue.pop_front();
-            } else {
-                println!("setting state failed, trying again");
+            match success {
+                true  => { govee_queue.pop_front(); },
+                false => println!("setting state failed, trying again")
             }
         }
 

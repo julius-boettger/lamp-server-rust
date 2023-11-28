@@ -32,9 +32,6 @@ pub async fn send_api_request(method: HttpMethod, url: &str, headers: Option<Vec
     };
 
     let json = response.json::<serde_json::Value>().await;
-    if let Ok(json) = json {
-        Ok(json)
-    } else {
-        Err("parsing request response json failed")
-    }
+    // replace error with custom message
+    json.map_err(|e| "parsing request response json failed")
 }
