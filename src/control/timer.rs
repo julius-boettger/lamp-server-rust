@@ -36,6 +36,7 @@ pub struct Timer {
 pub enum TimerAction {
     /// alarm for waking up with sunrise.
     /// sunrise finishes on `timeday` and then stays on for `stay_on_for_min` before turning off.
+    /// brightness will return to default before turning off.
     Sunrise {
         /// how long the sunrise should be
         #[schema(minimum = 1, maximum = 255)]
@@ -69,14 +70,17 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                         );
                     })
                 });
-                // turn off later
+                // turn off later (and set default brightness before)
                 generated_timers.push(SimpleTimer {
                     timeday: timer.timeday.shift_time(
                         0,
                         stay_on_for_min as i8
                     ),
-                    function: Arc::new(|govee_queue|
-                        govee_queue.push_back(SetState::Power(false)))
+                    function: Arc::new(|govee_queue| {
+                        use crate::res::constants::govee::default_brightness::DAY;
+                        govee_queue.push_back(SetState::Brightness(DAY));
+                        govee_queue.push_back(SetState::Power(false));
+                    })
                 });
             }
         }
