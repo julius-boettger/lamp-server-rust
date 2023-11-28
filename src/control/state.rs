@@ -1,11 +1,19 @@
+use crate::res::constants;
 use std::time::Duration;
 use std::collections::VecDeque;
 use crate::util::govee::SetState;
 
+/// set brightness to default for night and color to nice warm white
+pub fn nightlamp(govee_queue: &mut VecDeque<SetState>) {
+    use constants::{govee::default_brightness::NIGHT, colors::NIGHTLAMP};
+    govee_queue.push_back(SetState::Brightness(NIGHT));
+    govee_queue.push_back(SetState::Color(NIGHTLAMP));
+}
+
+// TODO configure nightlamp for sunrise
 /// append `SetState`s for a sunrise of given duration to `govee_queue`
-pub fn gen_sunrise(govee_queue: &mut VecDeque<SetState>, sunrise_duration: Duration) {
-    use crate::res::constants::govee::*;
-    use crate::res::constants::sunrise::*;
+pub fn sunrise(govee_queue: &mut VecDeque<SetState>, sunrise_duration: Duration) {
+    use constants::{govee::*, sunrise::*};
 
     // number of `SetState`s to generate for brightness and color each.
     // f64 type is needed for later calculations.

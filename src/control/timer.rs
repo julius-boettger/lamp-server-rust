@@ -61,7 +61,7 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                         - (duration_min as i8)
                     ),
                     function: Arc::new(move |govee_queue| {
-                        state::gen_sunrise(
+                        state::sunrise(
                             govee_queue,
                             Duration::from_secs((duration_min as u64) * 60)
                         );

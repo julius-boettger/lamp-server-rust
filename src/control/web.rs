@@ -13,6 +13,8 @@ use axum::{
     headers::{Authorization, authorization::Basic}
 };
 
+// TODO route for nightlamp
+
 type Response<T> = Result<T, (Code, &'static str)>;
 
 // TODO replace with middleware?
