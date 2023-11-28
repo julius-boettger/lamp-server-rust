@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use std::collections::VecDeque;
-use crate::control::govee::SetState;
+use crate::util::govee::SetState;
 
 /// take govee_queue as argument
 pub type Element = Arc<dyn Fn(&mut VecDeque<SetState>) -> () + Send + Sync>;

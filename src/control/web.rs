@@ -2,19 +2,15 @@ use std::sync::Arc;
 use serde::Deserialize;
 use itertools::Itertools;
 use utoipa::{IntoParams, ToSchema};
-use crate::util::govee;
+use crate::util::govee::{self, SetState};
 use crate::res::constants;
+use crate::control::{timer::*, fn_queue};
 use axum::{
     Json,
     TypedHeader,
     http::StatusCode as Code,
     extract::{self, State},
     headers::{Authorization, authorization::Basic}
-};
-use crate::control::{
-    timer::*,
-    fn_queue,
-    govee::SetState
 };
 
 type Response<T> = Result<T, (Code, &'static str)>;

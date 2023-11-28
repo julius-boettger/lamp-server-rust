@@ -2,13 +2,10 @@ use std::sync::Arc;
 use utoipa::ToSchema;
 use tokio::sync::Mutex;
 use std::time::Duration;
+use crate::util::govee::SetState;
 use crate::util::timeday::TimeDay;
 use serde::{Serialize, Deserialize};
-use crate::control::{
-    fn_queue,
-    SetState,
-    state_gen
-};
+use crate::control::{fn_queue, state_gen};
 
 pub type SimpleTimers = Arc<Mutex<Vec<SimpleTimer>>>;
 pub type Timers = Arc<Mutex<Vec<Timer>>>;

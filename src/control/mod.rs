@@ -3,20 +3,16 @@ pub mod timer;
 pub mod fn_queue;
 pub mod state_gen;
 
-use crate::res::constants;
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use std::collections::VecDeque;
-use crate::util::govee::{self, SetState};
-
 /// never terminates
 pub async fn main_loop() {
-
-    use constants::govee::API_REQUEST_INTERVAL;
-    use constants::sunrise::*;
     use std::thread::sleep;
+    use crate::res::constants::{sunrise::*, govee::API_REQUEST_INTERVAL};
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
     use timer::SimpleTimers;
+    use std::collections::VecDeque;
     use crate::util::timeday::TimeDay;
+    use crate::util::govee::{self, SetState};
 
     if govee_brightness::START >= govee_brightness::STOP {
         panic!("sunrise brightness has to start smaller than it stops");
