@@ -95,10 +95,11 @@ async fn get_timers(
     Ok(Json(timers.lock().await.clone()))
 }
 
-// TODO fix or document missing params
 #[utoipa::path(
     put,
     path = "/timers",
+    // TimerAction (enum) cant implement IntoParams, so this doesnt work
+    //params(Vec<Timer>), 
     responses((
         status = 200,
         description = "Set timers to provided array of timers. Duplicates will be removed. Return response message.",
