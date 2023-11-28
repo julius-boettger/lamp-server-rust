@@ -110,32 +110,27 @@ async fn put_timers(
 ) -> Response<&'static str> {
     authorize(auth)?;
 
+    /// return given error message with status code UNPROCESSABLE_ENTITY if condition
+    fn error_if(condition: bool, message: &'static str) -> Response<()> {
+        match condition {
+            true  => Err((Code::UNPROCESSABLE_ENTITY, message)),
+            false => Ok(())
+        }
+    }
+
     // remove duplicates
     let new_timers = new_timers.into_iter().unique().collect_vec();
 
     // validate new timers
     for timer in new_timers.iter() {
-        // TODO use match to get message
-        if *timer.timeday.get_hour() > 23 {
-            return Err((Code::UNPROCESSABLE_ENTITY, "timeday.hour must be <= 23"));
-        }
-        if *timer.timeday.get_minute() > 59 {
-            return Err((Code::UNPROCESSABLE_ENTITY, "timeday.minute must be <= 59"));
-        }
-        if timer.timeday.get_days().is_empty() {
-            return Err((Code::UNPROCESSABLE_ENTITY, "timeday.days must not be empty"));
-        }
-        if timer.timeday.get_days().len() > 7 {
-            return Err((Code::UNPROCESSABLE_ENTITY, "timeday.days must have <= 7 elements"));
-        }
-        if timer.timeday.get_days().iter().any(|&d| d > 6) {
-            return Err((Code::UNPROCESSABLE_ENTITY, "every day in timeday.days has to be <= 6"));
-        }
+        error_if(*timer.timeday.get_hour() > 23, "timeday.hour must be <= 23")?;
+        error_if(*timer.timeday.get_minute() > 59, "timeday.minute must be <= 59")?;
+        error_if(timer.timeday.get_days().is_empty(), "timeday.days must not be empty")?;
+        error_if(timer.timeday.get_days().len() > 7, "timeday.days must have <= 7 elements")?;
+        error_if(timer.timeday.get_days().iter().any(|&d| d > 6), "every day in timeday.days has to be <= 6")?;
         match timer.action {
             TimerAction::Sunrise { duration_min, .. } => {
-                if duration_min < 1 {
-                    return Err((Code::UNPROCESSABLE_ENTITY, "action.params.duration_min has to be >= 1"));
-                }
+                error_if(duration_min < 1, "action.params.duration_min has to be >= 1")?;
             }
         }
     }
