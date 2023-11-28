@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use crate::util::govee::SetState;
 
 /// append `SetState`s for a sunrise of given duration to `govee_queue`
-pub fn sunrise(govee_queue: &mut VecDeque<SetState>, sunrise_duration: Duration) {
+pub fn gen_sunrise(govee_queue: &mut VecDeque<SetState>, sunrise_duration: Duration) {
     use crate::res::constants::govee::*;
     use crate::res::constants::sunrise::*;
 

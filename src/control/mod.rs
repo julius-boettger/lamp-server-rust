@@ -1,7 +1,7 @@
 pub mod web;
+pub mod state;
 pub mod timer;
 pub mod fn_queue;
-pub mod state_gen;
 
 /// never terminates
 pub async fn main_loop() {
