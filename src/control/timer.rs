@@ -32,13 +32,22 @@ pub enum TimerAction {
     /// alarm for waking up with sunrise.
     /// sunrise finishes on `timeday` and then stays on for `stay_on_for_min` before turning off.
     /// brightness will return to default before turning off.
+    /// nightlamp will be on for `nightlamp_min`,
+    /// with `sleep_min` between the nightlamp turning off and the sunrise finishing.
     Sunrise {
         /// how long the sunrise should be
         #[schema(minimum = 1, maximum = 32767)] // i16::MAX
         duration_min: u16,
         /// how long the finished sunrise should stay on
         #[schema(minimum = 0, maximum = 32767)] // i16::MAX
-        stay_on_for_min: u16
+        stay_on_for_min: u16,
+        /// time between nightlamp turning off and sunrise finishing.
+        /// has to be `>= duration_min`.
+        #[schema(minimum = 1, maximum = 32767)] // i16::MAX
+        sleep_min: u16,
+        /// how long the nightlamp should stay on
+        #[schema(minimum = 1, maximum = 32767)] // i16::MAX
+        nightlamp_min: u16
     }
 }
 
@@ -51,7 +60,25 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
         // skip disabled timers
         if !timer.enable { continue; }
         match timer.action {
-            TimerAction::Sunrise { duration_min, stay_on_for_min } => {
+            TimerAction::Sunrise { duration_min, stay_on_for_min, sleep_min, nightlamp_min } => {
+                // nightlamp on
+                generated_timers.push(SimpleTimer {
+                    timeday: timer.timeday.shift_time(
+                        0,
+                        - (sleep_min as i16) - (nightlamp_min as i16)
+                    ),
+                    function: Arc::new(move |govee_queue|
+                        state::nightlamp(govee_queue))
+                });
+                // nightlamp off
+                generated_timers.push(SimpleTimer {
+                    timeday: timer.timeday.shift_time(
+                        0,
+                        - (sleep_min as i16)
+                    ),
+                    function: Arc::new(|govee_queue|
+                        govee_queue.push_back(SetState::Power(false)))
+                });
                 // actual sunrise
                 generated_timers.push(SimpleTimer {
                     timeday: timer.timeday.shift_time(

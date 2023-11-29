@@ -9,7 +9,6 @@ pub fn nightlamp(govee_queue: &mut VecDeque<SetState>) {
     govee_queue.push_back(SetState::Color(NIGHTLAMP));
 }
 
-// TODO configure nightlamp for sunrise
 /// append `SetState`s for a sunrise of given duration to `govee_queue`
 pub fn sunrise(govee_queue: &mut VecDeque<SetState>, sunrise_duration: Duration) {
     use constants::{govee::*, sunrise::*};
