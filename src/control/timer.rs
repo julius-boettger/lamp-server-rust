@@ -34,11 +34,11 @@ pub enum TimerAction {
     /// brightness will return to default before turning off.
     Sunrise {
         /// how long the sunrise should be
-        #[schema(minimum = 1, maximum = 255)]
-        duration_min: u8,
+        #[schema(minimum = 1, maximum = 32767)] // i16::MAX
+        duration_min: u16,
         /// how long the finished sunrise should stay on
-        #[schema(minimum = 0, maximum = 255)]
-        stay_on_for_min: u8
+        #[schema(minimum = 0, maximum = 32767)] // i16::MAX
+        stay_on_for_min: u16
     }
 }
 
@@ -56,7 +56,7 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                 generated_timers.push(SimpleTimer {
                     timeday: timer.timeday.shift_time(
                         0,
-                        - (duration_min as i8)
+                        - (duration_min as i16)
                     ),
                     function: Arc::new(move |govee_queue| {
                         state::sunrise(
@@ -69,7 +69,7 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                 generated_timers.push(SimpleTimer {
                     timeday: timer.timeday.shift_time(
                         0,
-                        stay_on_for_min as i8
+                        stay_on_for_min as i16
                     ),
                     function: Arc::new(|govee_queue| {
                         use crate::constants::brightness::DAY;

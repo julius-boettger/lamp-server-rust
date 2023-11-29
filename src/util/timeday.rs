@@ -48,9 +48,9 @@ impl TimeDay {
     pub fn get_days(&self) -> &Vec<u8> { &self.days }
 
     /// can shift in both forwards and backwards in time
-    pub fn shift_time(&self, hour_shift: i8, minute_shift: i8) -> Self {
-        let mut total_minutes: i16 = i16::from(self.minute ) + (i16::from(self.hour ) * 60);
-        let     shift_minutes: i16 = i16::from(minute_shift) + (i16::from(hour_shift) * 60);
+    pub fn shift_time(&self, hour_shift: i16, minute_shift: i16) -> Self {
+        let mut total_minutes: i32 = i32::from(self.minute ) + (i32::from(self.hour ) * 60);
+        let     shift_minutes: i32 = i32::from(minute_shift) + (i32::from(hour_shift) * 60);
         total_minutes += shift_minutes;
 
         let mut days = self.days.clone();

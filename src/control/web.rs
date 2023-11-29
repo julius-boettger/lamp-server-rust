@@ -129,8 +129,11 @@ async fn put_timers(
         error_if(timer.timeday.get_days().len() > 7, "timeday.days must have <= 7 elements")?;
         error_if(timer.timeday.get_days().iter().any(|&d| d > 6), "every day in timeday.days has to be <= 6")?;
         match timer.action {
-            TimerAction::Sunrise { duration_min, .. } => {
+            TimerAction::Sunrise { duration_min, stay_on_for_min } => {
                 error_if(duration_min < 1, "action.params.duration_min has to be >= 1")?;
+                // i16::MAX
+                error_if(duration_min > 32767, "action.params.duration_min has to be <= 32767")?;
+                error_if(stay_on_for_min > 32767, "action.params.stay_on_for_min has to be <= 32767")?;
             }
         }
     }
