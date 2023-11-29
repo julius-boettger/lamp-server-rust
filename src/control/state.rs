@@ -5,6 +5,7 @@ use crate::util::govee_api::SetState;
 /// set brightness to default for night and color to nice warm white
 pub fn nightlamp(govee_queue: &mut VecDeque<SetState>) {
     use constants::{brightness::NIGHT, colors::NIGHTLAMP};
+    println!("activating nightlamp...");
     govee_queue.push_back(SetState::Brightness(NIGHT));
     govee_queue.push_back(SetState::Color(NIGHTLAMP));
 }

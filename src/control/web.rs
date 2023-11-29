@@ -3,7 +3,7 @@ use serde::Deserialize;
 use itertools::Itertools;
 use utoipa::{IntoParams, ToSchema};
 use crate::constants;
-use crate::control::timer::*;
+use crate::control::{state, timer::*};
 use crate::util::{fn_queue, govee_api::{self, SetState}};
 use axum::{
     Json,
@@ -12,8 +12,6 @@ use axum::{
     extract::{self, State},
     headers::{Authorization, authorization::Basic}
 };
-
-// TODO route for nightlamp
 
 type Response<T> = Result<T, (Code, &'static str)>;
 
@@ -71,6 +69,27 @@ async fn get_clear_govee_queue(
         govee_queue.push_back(SetState::Brightness(constants::brightness::DAY));
         govee_queue.push_back(SetState::Power(false));
     })).await;
+    Ok(message)
+}
+
+#[utoipa::path(
+    get,
+    path = "/activate_nightlamp",
+    responses((
+        status = 200,
+        description = "Set brightness to default for night and color to nice warm white. Return response message."
+    )),
+    security(("authorization" = [])) // require auth
+)]
+async fn get_activate_nightlamp(
+    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
+    State(mut function_queue): State<fn_queue::Queue>
+) -> Response<&'static str> {
+    authorize(auth)?;
+    let message = "queued nightlamp activation";
+    println!("{}", message);
+    fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue|
+        state::nightlamp(govee_queue))).await;
     Ok(message)
 }
 
@@ -281,7 +300,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             put_brightness,
             put_color,
             get_timers,
-            put_timers
+            put_timers,
+            get_activate_nightlamp,
         ),
         components(schemas(
             // enums/structs with #[derive(utoipa::ToSchema)]
@@ -310,6 +330,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
         // actual api
         .route("/state", get(get_state))
         .route("/clear_govee_queue", get(get_clear_govee_queue))
+            .with_state(Arc::clone(&function_queue))
+        .route("/activate_nightlamp", get(get_activate_nightlamp))
             .with_state(Arc::clone(&function_queue))
         .route("/power", put(put_power))
             .with_state(Arc::clone(&function_queue))
