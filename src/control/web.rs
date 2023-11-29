@@ -20,7 +20,7 @@ type Response<T> = Result<T, (Code, &'static str)>;
 fn authorize(auth: Authorization<Basic>) -> Response<()> {
     use constants::govee_secrets::API_KEY;
     if !auth.0.password().eq_ignore_ascii_case(sha256::digest(API_KEY).as_str()) {
-        return Err((Code::UNAUTHORIZED, "password in basic authorization header is incorrect. expected sha256 of Govee API key (case insensitive)."));
+        return Err((Code::UNAUTHORIZED, "password in basic authorization header is incorrect. expected sha256 hash of Govee API key (case insensitive)."));
     }
     Ok(())
 }
@@ -28,11 +28,17 @@ fn authorize(auth: Authorization<Basic>) -> Response<()> {
 #[utoipa::path(
     get,
     path = "/state",
-    responses((
-        status = 200,
+    responses(
+        (status = 200,
         description = "Get current state of lamp. Returns a default value on error.",
-        body = GetState
-    )),
+        body = GetState),
+        (status = 400,
+        description = "Basic authorization header is missing."),
+        (status = 401,
+        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        (status = 500,
+        description = "Fetching state failed, likely because of Govee API rate limit."),
+    ),
     security(("authorization" = [])) // require auth
 )]
 async fn get_state(
@@ -49,10 +55,14 @@ async fn get_state(
 #[utoipa::path(
     get,
     path = "/clear_govee_queue",
-    responses((
-        status = 200,
-        description = "Clear queue of Govee API calls to make. Then set the brightness to a default value and turn the lamp off. Return response message."
-    )),
+    responses(
+        (status = 200,
+        description = "Clear queue of Govee API calls to make. Then set the brightness to a default value and turn the lamp off. Return response message."),
+        (status = 400,
+        description = "Basic authorization header is missing."),
+        (status = 401,
+        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+    ),
     security(("authorization" = [])) // require auth
 )]
 async fn get_clear_govee_queue(
@@ -75,10 +85,14 @@ async fn get_clear_govee_queue(
 #[utoipa::path(
     get,
     path = "/activate_nightlamp",
-    responses((
-        status = 200,
-        description = "Set brightness to default for night and color to nice warm white. Return response message."
-    )),
+    responses(
+        (status = 200,
+        description = "Set brightness to default for night and color to nice warm white. Return response message."),
+        (status = 400,
+        description = "Basic authorization header is missing."),
+        (status = 401,
+        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+    ),
     security(("authorization" = [])) // require auth
 )]
 async fn get_activate_nightlamp(
@@ -96,11 +110,15 @@ async fn get_activate_nightlamp(
 #[utoipa::path(
     get,
     path = "/timers",
-    responses((
-        status = 200,
+    responses(
+        (status = 200,
         description = "Get array of current timers.",
-        body = Vec<Timer>
-    )),
+        body = Vec<Timer>),
+        (status = 400,
+        description = "Basic authorization header is missing."),
+        (status = 401,
+        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+    ),
     security(("authorization" = [])) // require auth
 )]
 async fn get_timers(
@@ -116,10 +134,16 @@ async fn get_timers(
     path = "/timers",
     // TimerAction (enum) cant implement IntoParams, so this doesnt work
     //params(Vec<Timer>), 
-    responses((
-        status = 200,
-        description = "Set timers to provided array of timers. Duplicates will be removed. Return response message.",
-    )),
+    responses(
+        (status = 200,
+        description = "Set timers to provided array of timers. Duplicates will be removed. Return response message."),
+        (status = 400,
+        description = "Basic authorization header is missing or request body is not valid JSON."),
+        (status = 401,
+        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        (status = 422,
+        description = "Valid JSON request body has unexpected contents."),
+    ),
     security(("authorization" = [])) // require auth
 )]
 async fn put_timers(
@@ -173,10 +197,16 @@ struct PowerState { power: bool }
     put,
     path = "/power",
     params(PowerState),
-    responses((
-        status = 200,
-        description = "Queue requested power state. Return response message."
-    )),
+    responses(
+        (status = 200,
+        description = "Queue requested power state. Return response message."),
+        (status = 400,
+        description = "Basic authorization header is missing or request body is not valid JSON."),
+        (status = 401,
+        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        (status = 422,
+        description = "Valid JSON request body has unexpected contents."),
+    ),
     security(("authorization" = [])) // require auth
 )]
 async fn put_power(
@@ -203,10 +233,16 @@ struct BrightnessState {
     put,
     path = "/brightness",
     params(BrightnessState),
-    responses((
-        status = 200,
-        description = "Queue requested brightness state. Return response message."
-    )),
+    responses(
+        (status = 200,
+        description = "Queue requested brightness state. Return response message."),
+        (status = 400,
+        description = "Basic authorization header is missing or request body is not valid JSON."),
+        (status = 401,
+        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        (status = 422,
+        description = "Valid JSON request body has unexpected contents."),
+    ),
     security(("authorization" = [])) // require auth
 )]
 async fn put_brightness(
@@ -245,10 +281,16 @@ struct ColorState {
     put,
     path = "/color",
     params(ColorState),
-    responses((
-        status = 200,
-        description = "Queue requested color state. Return response message."
-    )),
+    responses(
+        (status = 200,
+        description = "Queue requested color state. Return response message."),
+        (status = 400,
+        description = "Basic authorization header is missing or request body is not valid JSON."),
+        (status = 401,
+        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        (status = 422,
+        description = "Valid JSON request body has unexpected contents."),
+    ),
     security(("authorization" = [])) // require auth
 )]
 async fn put_color(
