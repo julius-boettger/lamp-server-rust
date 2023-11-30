@@ -12,6 +12,7 @@ pub type Timers = Arc<Mutex<Vec<Timer>>>;
 
 pub struct SimpleTimer {
     pub timeday: TimeDay,
+    pub description: &'static str,
     /// take govee_queue as argument
     pub function: fn_queue::Element
 }
@@ -61,8 +62,8 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
         if !timer.enable { continue; }
         match timer.action {
             TimerAction::Sunrise { duration_min, stay_on_for_min, sleep_min, nightlamp_min } => {
-                // nightlamp on
                 generated_timers.push(SimpleTimer {
+                    description: "nightlamp on",
                     timeday: timer.timeday.shift_time(
                         0,
                         - (sleep_min as i16) - (nightlamp_min as i16)
@@ -70,8 +71,8 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                     function: Arc::new(move |govee_queue|
                         state::nightlamp(govee_queue))
                 });
-                // nightlamp off
                 generated_timers.push(SimpleTimer {
+                    description: "nightlamp off",
                     timeday: timer.timeday.shift_time(
                         0,
                         - (sleep_min as i16)
@@ -79,8 +80,8 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                     function: Arc::new(|govee_queue|
                         govee_queue.push_back(SetState::Power(false)))
                 });
-                // actual sunrise
                 generated_timers.push(SimpleTimer {
+                    description: "sunrise",
                     timeday: timer.timeday.shift_time(
                         0,
                         - (duration_min as i16)
@@ -94,6 +95,7 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                 });
                 // turn off later (and set default brightness before)
                 generated_timers.push(SimpleTimer {
+                    description: "turn off",
                     timeday: timer.timeday.shift_time(
                         0,
                         stay_on_for_min as i16
@@ -110,9 +112,8 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
 
     println!("updated timers with {} generated simple timer(s) from {} complex timer(s)", generated_timers.len(), timers.len());
     if generated_timers.len() > 0 {
-        println!("activation times of generated timers are:");
         for timer in generated_timers.iter() {
-            println!("{}", timer.timeday);
+            println!("{}: {}", timer.timeday, timer.description);
         }
     }
 
@@ -138,4 +139,32 @@ pub async fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &fn_
     }
 
     *last_checked = now;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::test; // async tests
+
+    #[test]
+    async fn sunrise_timer_processing() {
+        let simple_timers: SimpleTimers = Arc::new(Mutex::new(vec![]));
+        let timers: Timers = Arc::new(Mutex::new(vec![Timer {
+            enable: true,
+            timeday: TimeDay::new(7, 0, vec![0]),
+            action: TimerAction::Sunrise {
+                duration_min: 20,
+                stay_on_for_min: 5,
+                sleep_min: (60 * 8) + 30,
+                nightlamp_min: 60
+            }
+        }]));
+        process_timers(&timers, &simple_timers).await;
+        let simple_timers = simple_timers.lock().await;
+        assert_eq!(simple_timers.len(), 4);
+        assert!(simple_timers.iter().any(|t| t.timeday == TimeDay::new(21, 30, vec![6])));
+        assert!(simple_timers.iter().any(|t| t.timeday == TimeDay::new(22, 30, vec![6])));
+        assert!(simple_timers.iter().any(|t| t.timeday == TimeDay::new( 6, 40, vec![0])));
+        assert!(simple_timers.iter().any(|t| t.timeday == TimeDay::new( 7,  5, vec![0])));
+    }
 }
