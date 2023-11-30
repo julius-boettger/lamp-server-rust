@@ -8,22 +8,24 @@ use crate::util::{govee_api::SetState, timeday::TimeDay, fn_queue};
 pub type SimpleTimers = Arc<Mutex<Vec<SimpleTimer>>>;
 pub type Timers = Arc<Mutex<Vec<Timer>>>;
 
-// TODO make fields private, use getters/setters/constructers
-
 pub struct SimpleTimer {
-    pub timeday: TimeDay,
-    pub description: &'static str,
+    timeday: TimeDay,
+    description: &'static str,
     /// take govee_queue as argument
-    pub function: fn_queue::Element
+    function: fn_queue::Element
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq, Eq, Hash)]
 pub struct Timer {
-    pub enable: bool,
+    enable: bool,
     #[schema(inline)]
-    pub timeday: TimeDay,
+    timeday: TimeDay,
     #[schema(inline)]
-    pub action: TimerAction
+    action: TimerAction
+}
+impl Timer {
+    pub fn get_timeday(&self) -> &TimeDay { &self.timeday }
+    pub fn get_action(&self) -> &TimerAction { &self.action }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq, Eq, Hash)]

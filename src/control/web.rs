@@ -166,12 +166,12 @@ async fn put_timers(
 
     // validate new timers
     for timer in new_timers.iter() {
-        error_if(*timer.timeday.get_hour() > 23, "timeday.hour must be <= 23")?;
-        error_if(*timer.timeday.get_minute() > 59, "timeday.minute must be <= 59")?;
-        error_if(timer.timeday.get_days().is_empty(), "timeday.days must not be empty")?;
-        error_if(timer.timeday.get_days().len() > 7, "timeday.days must have <= 7 elements")?;
-        error_if(timer.timeday.get_days().iter().any(|&d| d > 6), "every day in timeday.days has to be <= 6")?;
-        match timer.action {
+        error_if(*timer.get_timeday().get_hour() > 23, "timeday.hour must be <= 23")?;
+        error_if(*timer.get_timeday().get_minute() > 59, "timeday.minute must be <= 59")?;
+        error_if(timer.get_timeday().get_days().is_empty(), "timeday.days must not be empty")?;
+        error_if(timer.get_timeday().get_days().len() > 7, "timeday.days must have <= 7 elements")?;
+        error_if(timer.get_timeday().get_days().iter().any(|&d| d > 6), "every day in timeday.days has to be <= 6")?;
+        match *timer.get_action() {
             TimerAction::Sunrise { duration_min, stay_on_for_min, sleep_min, nightlamp_min } => {
                 error_if(duration_min < 1, "action.params.duration_min has to be >= 1")?;
                 error_if(nightlamp_min < 1, "action.params.nightlamp_min has to be >= 1")?;
