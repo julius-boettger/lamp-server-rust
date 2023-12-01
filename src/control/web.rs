@@ -13,8 +13,6 @@ use axum::{
     http::StatusCode as Code
 };
 
-// TODO rephrase code 200 descriptions to match others
-
 type Response<T> = Result<T, (Code, &'static str)>;
 
 /// axum middleware to check authorization before evaluating a request
@@ -51,12 +49,12 @@ fn check_authorization(headers: HeaderMap) -> Response<()> {
     path = "/state",
     responses(
         (status = 200,
-        description = "Get current state of lamp. Returns a default value on error.",
+        description = "Successfully fetched current state of lamp.",
         body = GetState),
         (status = 400,
-        description = "Request does not match expected structure."),
+        description = "Request did not match expected structure."),
         (status = 401,
-        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
         (status = 500,
         description = "Fetching state failed, likely because of Govee API rate limit."),
     ),
@@ -75,11 +73,11 @@ async fn get_state() -> Response<Json<govee_api::GetState>> {
     path = "/clear_govee_queue",
     responses(
         (status = 200,
-        description = "Clear queue of Govee API calls to make. Then set the brightness to a default value and turn the lamp off. Return response message."),
+        description = "Successfully cleared queue of Govee API calls to make. Also queued setting brightness to default and turning lamp off."),
         (status = 400,
-        description = "Request does not match expected structure."),
+        description = "Request did not match expected structure."),
         (status = 401,
-        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -103,11 +101,11 @@ async fn get_clear_govee_queue(
     path = "/activate_nightlamp",
     responses(
         (status = 200,
-        description = "Set brightness to default for night and color to nice warm white. Return response message."),
+        description = "Successfully queued setting brightness to default for night and color to nice warm white."),
         (status = 400,
-        description = "Request does not match expected structure."),
+        description = "Request did not match expected structure."),
         (status = 401,
-        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -126,11 +124,11 @@ async fn get_activate_nightlamp(
     path = "/activate_daylamp",
     responses(
         (status = 200,
-        description = "Set color to pleasant orange. Return response message."),
+        description = "Successfully queued setting color to pleasant orange."),
         (status = 400,
-        description = "Request does not match expected structure."),
+        description = "Request did not match expected structure."),
         (status = 401,
-        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -149,12 +147,12 @@ async fn get_activate_daylamp(
     path = "/timers",
     responses(
         (status = 200,
-        description = "Get array of current timers.",
+        description = "Successfully returned array of current timers.",
         body = Vec<Timer>),
         (status = 400,
-        description = "Request does not match expected structure."),
+        description = "Request did not match expected structure."),
         (status = 401,
-        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -171,13 +169,13 @@ async fn get_timers(
     //params(Vec<Timer>), 
     responses(
         (status = 200,
-        description = "Set timers to provided array of timers. Duplicates will be removed. Return response message."),
+        description = "Successfully set internal timers to provided timers. Duplicates were removed."),
         (status = 400,
-        description = "Request does not match expected structure."),
+        description = "Request did not match expected structure."),
         (status = 401,
-        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
         (status = 422,
-        description = "Valid JSON request body has unexpected contents."),
+        description = "Valid JSON request body had unexpected contents."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -240,13 +238,13 @@ struct PowerState { power: bool }
     params(PowerState),
     responses(
         (status = 200,
-        description = "Queue requested power state. Return response message."),
+        description = "Successfully queued requested power state."),
         (status = 400,
-        description = "Request does not match expected structure."),
+        description = "Request did not match expected structure."),
         (status = 401,
-        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
         (status = 422,
-        description = "Valid JSON request body has unexpected contents."),
+        description = "Valid JSON request body had unexpected contents."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -274,13 +272,13 @@ struct BrightnessState {
     params(BrightnessState),
     responses(
         (status = 200,
-        description = "Queue requested brightness state. Return response message."),
+        description = "Successfully queued requested brightness state."),
         (status = 400,
-        description = "Request does not match expected structure."),
+        description = "Request did not match expected structure."),
         (status = 401,
-        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
         (status = 422,
-        description = "Valid JSON request body has unexpected contents."),
+        description = "Valid JSON request body had unexpected contents."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -320,13 +318,13 @@ struct ColorState {
     params(ColorState),
     responses(
         (status = 200,
-        description = "Queue requested color state. Return response message."),
+        description = "Successfully queued requested color state."),
         (status = 400,
-        description = "Request does not match expected structure."),
+        description = "Request did not match expected structure."),
         (status = 401,
-        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
         (status = 422,
-        description = "Valid JSON request body has unexpected contents."),
+        description = "Valid JSON request body had unexpected contents."),
     ),
     security(("authorization" = [])) // require auth
 )]
