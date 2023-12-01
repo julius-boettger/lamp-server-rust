@@ -54,7 +54,8 @@ pub enum TimerAction {
     },
     /// set brightness to default for night and color to nice warm white.
     Nightlamp,
-    // TODO action for setting power state
+    /// set power state to given value
+    PowerState { power: bool },
     // TODO action for setting brightness
     // TODO action for setting color
 }
@@ -121,7 +122,15 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                     function: Arc::new(move |govee_queue|
                         state::nightlamp(govee_queue))
                 });
-            }
+            },
+            TimerAction::PowerState { power } => {
+                generated_timers.push(SimpleTimer {
+                    description: "set power",
+                    timeday: timer.timeday.clone(),
+                    function: Arc::new(move |govee_queue|
+                        govee_queue.push_back(SetState::Power(power)))
+                });
+            },
         }
     }
 
