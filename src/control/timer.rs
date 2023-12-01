@@ -51,9 +51,12 @@ pub enum TimerAction {
         /// how long the nightlamp should stay on
         #[schema(minimum = 1, maximum = 32767)] // i16::MAX
         nightlamp_min: u16
-    }
-    // TODO action for nightlamp
+    },
+    /// set brightness to default for night and color to nice warm white.
+    Nightlamp,
     // TODO action for setting power state
+    // TODO action for setting brightness
+    // TODO action for setting color
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.
@@ -109,6 +112,14 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                         govee_queue.push_back(SetState::Brightness(DAY));
                         govee_queue.push_back(SetState::Power(false));
                     })
+                });
+            },
+            TimerAction::Nightlamp => {
+                generated_timers.push(SimpleTimer {
+                    description: "nightlamp on",
+                    timeday: timer.timeday.clone(),
+                    function: Arc::new(move |govee_queue|
+                        state::nightlamp(govee_queue))
                 });
             }
         }

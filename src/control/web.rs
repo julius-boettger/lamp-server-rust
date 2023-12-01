@@ -191,7 +191,8 @@ async fn put_timers(
                 error_if(duration_min > 32767, "action.params.duration_min has to be <= 32767")?;
                 error_if(nightlamp_min > 32767, "action.params.nightlamp_min has to be <= 32767")?;
                 error_if(stay_on_for_min > 32767, "action.params.stay_on_for_min has to be <= 32767")?;
-            }
+            },
+            TimerAction::Nightlamp => {}
         }
     }
 
