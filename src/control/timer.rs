@@ -52,6 +52,8 @@ pub enum TimerAction {
         #[schema(minimum = 1, maximum = 32767)] // i16::MAX
         nightlamp_min: u16
     },
+    /// set bright orange color with high brightness to be active for about 20 seconds
+    Reminder,
     /// set brightness to default for night and color to nice warm white.
     Nightlamp,
     /// set color to pleasant orange.
@@ -127,6 +129,14 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                         govee_queue.push_back(SetState::Brightness(DAY));
                         govee_queue.push_back(SetState::Power(false));
                     })
+                });
+            },
+            TimerAction::Reminder => {
+                generated_timers.push(SimpleTimer {
+                    description: "reminder",
+                    timeday: timer.timeday.clone(),
+                    function: Arc::new(move |govee_queue|
+                        state::reminder(govee_queue))
                 });
             },
             TimerAction::Nightlamp => {

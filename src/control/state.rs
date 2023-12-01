@@ -17,7 +17,17 @@ pub fn daylamp(govee_queue: &mut VecDeque<SetState>) {
     govee_queue.push_back(SetState::Color(DAYLAMP));
 }
 
-/// append `SetState`s for a sunrise of given duration to `govee_queue`
+/// append states to show a bright orange with high brightness for about 20 seconds and then turn off again
+pub fn reminder(govee_queue: &mut VecDeque<SetState>) {
+    println!("activating reminder...");
+    use constants::{colors::REMINDER as COLOR, brightness::REMINDER as BRIGHTNESS};
+    govee_queue.push_back(SetState::Color(COLOR));
+    govee_queue.push_back(SetState::Brightness(BRIGHTNESS));
+    govee_queue.push_back(SetState::Power(true)); // do nothing
+    govee_queue.push_back(SetState::Power(false));
+}
+
+/// append states for a sunrise of given duration
 pub fn sunrise(govee_queue: &mut VecDeque<SetState>, sunrise_duration: Duration) {
     use constants::{govee::*, sunrise::*};
 

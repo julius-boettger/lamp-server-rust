@@ -98,6 +98,29 @@ async fn get_clear_govee_queue(
 
 #[utoipa::path(
     get,
+    path = "/activate_reminder",
+    responses(
+        (status = 200,
+        description = "Successfully queued bright orange color with high brightness to be active for about 20 seconds."),
+        (status = 400,
+        description = "Request did not match expected structure."),
+        (status = 401,
+        description = "Bearer authorization token was not sha256 hash of Govee API key."),
+    ),
+    security(("authorization" = [])) // require auth
+)]
+async fn get_activate_reminder(
+    State(mut function_queue): State<fn_queue::Queue>
+) -> Response<&'static str> {
+    let message = "queued reminder activation";
+    println!("{}", message);
+    fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue|
+        state::reminder(govee_queue))).await;
+    Ok(message)
+}
+
+#[utoipa::path(
+    get,
     path = "/activate_nightlamp",
     responses(
         (status = 200,
@@ -213,14 +236,15 @@ async fn put_timers(
                 error_if(nightlamp_min > 32767, "action.params.nightlamp_min has to be <= 32767")?;
                 error_if(stay_on_for_min > 32767, "action.params.stay_on_for_min has to be <= 32767")?;
             },
-            TimerAction::Nightlamp => {},
-            TimerAction::Daylamp => {},
-            TimerAction::PowerState { .. } => {},
+            TimerAction::Reminder => (),
+            TimerAction::Nightlamp => (),
+            TimerAction::Daylamp => (),
+            TimerAction::PowerState { .. } => (),
             TimerAction::BrightnessState { brightness } => {
                 error_if(brightness < 1, "action.params.brightness has to be >= 1")?;
                 error_if(brightness > 100, "action.params.brightness has to be <= 100")?;
             },
-            TimerAction::ColorState { .. } => {},
+            TimerAction::ColorState { .. } => (),
         }
     }
 
@@ -376,6 +400,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             put_color,
             get_timers,
             put_timers,
+            get_activate_reminder,
             get_activate_nightlamp,
             get_activate_daylamp,
         ),
@@ -398,6 +423,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
         // api routes
         .route("/state", get(get_state))
         .route("/clear_govee_queue", get(get_clear_govee_queue))
+            .with_state(Arc::clone(&function_queue))
+        .route("/activate_reminder", get(get_activate_reminder))
             .with_state(Arc::clone(&function_queue))
         .route("/activate_nightlamp", get(get_activate_nightlamp))
             .with_state(Arc::clone(&function_queue))

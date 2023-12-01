@@ -19,11 +19,13 @@ pub mod govee {
 pub mod brightness {
     pub const DAY: u8 = 15;
     pub const NIGHT: u8 = 1;
+    pub const REMINDER: u8 = 100;
 }
 
 pub mod colors {
     pub const NIGHTLAMP: (u8, u8, u8) = (255, 181, 128);
     pub const DAYLAMP: (u8, u8, u8) = (255, 155, 90);
+    pub const REMINDER: (u8, u8, u8) = (255, 100, 0);
 }
 
 // f64 types for easier calculations
