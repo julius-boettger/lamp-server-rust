@@ -53,6 +53,7 @@ pub enum TimerAction {
         nightlamp_min: u16
     }
     // TODO action for nightlamp
+    // TODO action for setting power state
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.

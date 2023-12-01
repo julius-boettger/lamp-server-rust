@@ -7,13 +7,44 @@ use crate::control::{state, timer::*};
 use crate::util::{fn_queue, govee_api::{self, SetState}};
 use axum::{
     Json,
-    http::StatusCode as Code,
+    middleware,
+    http::HeaderMap,
     extract::{self, State},
+    http::StatusCode as Code
 };
+
+// TODO rephrase code 200 descriptions to match others
 
 type Response<T> = Result<T, (Code, &'static str)>;
 
-// TODO authentication middleware with axum::middleware::from_fn
+/// axum middleware to check authorization before evaluating a request
+async fn validate_request(
+    headers: HeaderMap,
+    request: extract::Request,
+    next: middleware::Next,
+) -> Result<axum::response::Response, (Code, &'static str)> {
+    check_authorization(headers)?;
+    // evaluate and return original request
+    Ok(next.run(request).await)
+}
+
+fn check_authorization(headers: HeaderMap) -> Response<()> {
+    let Some(value) = headers.get("authorization") else {
+        return Err((Code::BAD_REQUEST, "authorization header is missing"));
+    };
+    let Ok(value) = value.to_str() else {
+        return Err((Code::BAD_REQUEST, "authorization header value contains characters that are not visible ASCII"));
+    };
+    let Some(token) = value.strip_prefix("Bearer ") else {
+        return Err((Code::BAD_REQUEST, "authorization header value is not of type bearer"));
+    };
+    // check for expected token
+    use constants::govee_secrets::API_KEY;
+    match token.eq_ignore_ascii_case(sha256::digest(API_KEY).as_str()) {
+        true  => Ok(()),
+        false => Err((Code::UNAUTHORIZED, "expected sha256 hash of Govee API key as bearer token (case insensitive)"))
+    }
+}
 
 #[utoipa::path(
     get,
@@ -23,9 +54,9 @@ type Response<T> = Result<T, (Code, &'static str)>;
         description = "Get current state of lamp. Returns a default value on error.",
         body = GetState),
         (status = 400,
-        description = "Basic authorization header is missing."),
+        description = "Request does not match expected structure."),
         (status = 401,
-        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token is not sha256 hash of Govee API key."),
         (status = 500,
         description = "Fetching state failed, likely because of Govee API rate limit."),
     ),
@@ -46,9 +77,9 @@ async fn get_state() -> Response<Json<govee_api::GetState>> {
         (status = 200,
         description = "Clear queue of Govee API calls to make. Then set the brightness to a default value and turn the lamp off. Return response message."),
         (status = 400,
-        description = "Basic authorization header is missing."),
+        description = "Request does not match expected structure."),
         (status = 401,
-        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token is not sha256 hash of Govee API key."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -74,9 +105,9 @@ async fn get_clear_govee_queue(
         (status = 200,
         description = "Set brightness to default for night and color to nice warm white. Return response message."),
         (status = 400,
-        description = "Basic authorization header is missing."),
+        description = "Request does not match expected structure."),
         (status = 401,
-        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token is not sha256 hash of Govee API key."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -98,9 +129,9 @@ async fn get_activate_nightlamp(
         description = "Get array of current timers.",
         body = Vec<Timer>),
         (status = 400,
-        description = "Basic authorization header is missing."),
+        description = "Request does not match expected structure."),
         (status = 401,
-        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token is not sha256 hash of Govee API key."),
     ),
     security(("authorization" = [])) // require auth
 )]
@@ -119,9 +150,9 @@ async fn get_timers(
         (status = 200,
         description = "Set timers to provided array of timers. Duplicates will be removed. Return response message."),
         (status = 400,
-        description = "Basic authorization header is missing or request body is not valid JSON."),
+        description = "Request does not match expected structure."),
         (status = 401,
-        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token is not sha256 hash of Govee API key."),
         (status = 422,
         description = "Valid JSON request body has unexpected contents."),
     ),
@@ -180,9 +211,9 @@ struct PowerState { power: bool }
         (status = 200,
         description = "Queue requested power state. Return response message."),
         (status = 400,
-        description = "Basic authorization header is missing or request body is not valid JSON."),
+        description = "Request does not match expected structure."),
         (status = 401,
-        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token is not sha256 hash of Govee API key."),
         (status = 422,
         description = "Valid JSON request body has unexpected contents."),
     ),
@@ -214,9 +245,9 @@ struct BrightnessState {
         (status = 200,
         description = "Queue requested brightness state. Return response message."),
         (status = 400,
-        description = "Basic authorization header is missing or request body is not valid JSON."),
+        description = "Request does not match expected structure."),
         (status = 401,
-        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token is not sha256 hash of Govee API key."),
         (status = 422,
         description = "Valid JSON request body has unexpected contents."),
     ),
@@ -260,9 +291,9 @@ struct ColorState {
         (status = 200,
         description = "Queue requested color state. Return response message."),
         (status = 400,
-        description = "Basic authorization header is missing or request body is not valid JSON."),
+        description = "Request does not match expected structure."),
         (status = 401,
-        description = "Password in basic authorization header is not sha256 hash of Govee API key."),
+        description = "Bearer authorization token is not sha256 hash of Govee API key."),
         (status = 422,
         description = "Valid JSON request body has unexpected contents."),
     ),
@@ -283,13 +314,12 @@ async fn put_color(
 /// start webserver. never terminates.
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
     use constants::net::*;
-    use tokio::sync::Mutex;
     use utoipa_swagger_ui::SwaggerUi;
+    use tokio::{net::TcpListener, sync::Mutex};
     use axum::{response::Redirect, routing::{get, put}};
     use utoipa::{OpenApi, openapi::security::{SecurityScheme, Http, HttpAuthScheme}};
 
-    // TODO correct for new authentication
-    /// utility struct for utoipa to register basic http authorization.
+    /// utility struct for utoipa to register bearer http authorization.
     /// this is necessary for showing an "Authorize" button in swagger-ui.
     struct AuthHint;
     impl utoipa::Modify for AuthHint {
@@ -297,7 +327,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             if let Some(components) = openapi.components.as_mut() {
                 components.add_security_scheme(
                     "authorization",
-                    SecurityScheme::Http(Http::new(HttpAuthScheme::Basic))
+                    SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer))
                 )
             }
         }
@@ -335,14 +365,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
 
     // configure routes
     let app = axum::Router::new()
-
-        // swagger ui
-        .merge(SwaggerUi::new("/swagger-ui")
-            .url("/openapi.json", ApiDoc::openapi()))
-        // temporarily redirect root to swagger ui
-        .route("/", get(|| async { Redirect::temporary("/swagger-ui") }))
-
-        // actual api
+        // api routes
         .route("/state", get(get_state))
         .route("/clear_govee_queue", get(get_clear_govee_queue))
             .with_state(Arc::clone(&function_queue))
@@ -358,10 +381,17 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             .with_state(Arc::clone(&timers))
         .route("/timers", put(put_timers))
             .with_state((Arc::clone(&timers), Arc::clone(&simple_timers)))
-    ;
+
+        // require authorization for the routes above with middleware
+        .route_layer(middleware::from_fn(validate_request))
+
+        // temporarily redirect root to swagger ui
+        .route("/", get(|| async { Redirect::temporary("/swagger-ui") }))
+        // swagger ui
+        .merge(SwaggerUi::new("/swagger-ui")
+            .url("/openapi.json", ApiDoc::openapi()));
 
     let address = std::net::SocketAddr::new(LOCALHOST, PORT);
     println!("WEB: starting server on http://{address} ...");
-    let listener = tokio::net::TcpListener::bind(address).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(TcpListener::bind(address).await.unwrap(), app).await.unwrap();
 }
