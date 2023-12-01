@@ -218,6 +218,10 @@ async fn put_timers(
             TimerAction::Nightlamp => {},
             TimerAction::Daylamp => {},
             TimerAction::PowerState { .. } => {},
+            TimerAction::BrightnessState { brightness } => {
+                error_if(brightness < 1, "action.params.brightness has to be >= 1")?;
+                error_if(brightness > 100, "action.params.brightness has to be <= 100")?;
+            },
             TimerAction::ColorState { .. } => {},
         }
     }

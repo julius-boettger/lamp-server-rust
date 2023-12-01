@@ -58,6 +58,11 @@ pub enum TimerAction {
     Daylamp,
     /// set power state to given value
     PowerState { power: bool },
+    /// set brightness state to given value
+    BrightnessState {
+        #[schema(minimum = 1, maximum = 100)]
+        brightness: u8
+    },
     /// set color state to given value
     ColorState {
         #[schema(minimum = 0, maximum = 255)]
@@ -67,7 +72,6 @@ pub enum TimerAction {
         #[schema(minimum = 0, maximum = 255)]
         b: u8
     },
-    // TODO action for setting brightness
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.
@@ -147,6 +151,14 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                     timeday: timer.timeday.clone(),
                     function: Arc::new(move |govee_queue|
                         govee_queue.push_back(SetState::Power(power)))
+                });
+            },
+            TimerAction::BrightnessState { brightness } => {
+                generated_timers.push(SimpleTimer {
+                    description: "set brightness",
+                    timeday: timer.timeday.clone(),
+                    function: Arc::new(move |govee_queue|
+                        govee_queue.push_back(SetState::Brightness(brightness)))
                 });
             },
             TimerAction::ColorState { r, g, b } => {
