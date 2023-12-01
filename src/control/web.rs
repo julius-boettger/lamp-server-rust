@@ -123,6 +123,29 @@ async fn get_activate_nightlamp(
 
 #[utoipa::path(
     get,
+    path = "/activate_daylamp",
+    responses(
+        (status = 200,
+        description = "Set color to pleasant orange. Return response message."),
+        (status = 400,
+        description = "Request does not match expected structure."),
+        (status = 401,
+        description = "Bearer authorization token is not sha256 hash of Govee API key."),
+    ),
+    security(("authorization" = [])) // require auth
+)]
+async fn get_activate_daylamp(
+    State(mut function_queue): State<fn_queue::Queue>
+) -> Response<&'static str> {
+    let message = "queued daylamp activation";
+    println!("{}", message);
+    fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue|
+        state::daylamp(govee_queue))).await;
+    Ok(message)
+}
+
+#[utoipa::path(
+    get,
     path = "/timers",
     responses(
         (status = 200,
@@ -193,6 +216,7 @@ async fn put_timers(
                 error_if(stay_on_for_min > 32767, "action.params.stay_on_for_min has to be <= 32767")?;
             },
             TimerAction::Nightlamp => {},
+            TimerAction::Daylamp => {},
             TimerAction::PowerState { .. } => {},
             TimerAction::ColorState { .. } => {},
         }
@@ -351,6 +375,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             get_timers,
             put_timers,
             get_activate_nightlamp,
+            get_activate_daylamp,
         ),
         components(schemas(
             // enums/structs with #[derive(utoipa::ToSchema)]
@@ -373,6 +398,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
         .route("/clear_govee_queue", get(get_clear_govee_queue))
             .with_state(Arc::clone(&function_queue))
         .route("/activate_nightlamp", get(get_activate_nightlamp))
+            .with_state(Arc::clone(&function_queue))
+        .route("/activate_daylamp", get(get_activate_daylamp))
             .with_state(Arc::clone(&function_queue))
         .route("/power", put(put_power))
             .with_state(Arc::clone(&function_queue))

@@ -23,6 +23,7 @@ pub mod brightness {
 
 pub mod colors {
     pub const NIGHTLAMP: (u8, u8, u8) = (255, 181, 128);
+    pub const DAYLAMP: (u8, u8, u8) = (255, 155, 90);
 }
 
 // f64 types for easier calculations

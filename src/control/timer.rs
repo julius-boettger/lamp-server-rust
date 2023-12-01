@@ -54,6 +54,8 @@ pub enum TimerAction {
     },
     /// set brightness to default for night and color to nice warm white.
     Nightlamp,
+    /// set color to pleasant orange.
+    Daylamp,
     /// set power state to given value
     PowerState { power: bool },
     /// set color state to given value
@@ -129,6 +131,14 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                     timeday: timer.timeday.clone(),
                     function: Arc::new(move |govee_queue|
                         state::nightlamp(govee_queue))
+                });
+            },
+            TimerAction::Daylamp => {
+                generated_timers.push(SimpleTimer {
+                    description: "daylamp on",
+                    timeday: timer.timeday.clone(),
+                    function: Arc::new(move |govee_queue|
+                        state::daylamp(govee_queue))
                 });
             },
             TimerAction::PowerState { power } => {
