@@ -15,6 +15,7 @@ pub enum SetState {
     utoipa::ToSchema  // to display in swagger-ui
 )]
 pub struct GetState {
+    /// each value is from 0 to 255
     #[schema(min_items = 3, max_items = 3)]
     pub rgb_color: (u8, u8, u8),
     /// from 1 to 100

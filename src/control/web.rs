@@ -194,6 +194,7 @@ async fn put_timers(
             },
             TimerAction::Nightlamp => {},
             TimerAction::PowerState { .. } => {},
+            TimerAction::ColorState { .. } => {},
         }
     }
 

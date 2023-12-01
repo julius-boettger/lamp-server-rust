@@ -46,7 +46,7 @@ pub enum TimerAction {
         stay_on_for_min: u16,
         /// time between nightlamp turning off and sunrise finishing.
         /// has to be `>= duration_min`.
-        #[schema(minimum = 1, maximum = 32767)] // i16::MAX
+        #[schema(maximum = 32767)] // i16::MAX
         sleep_min: u16,
         /// how long the nightlamp should stay on
         #[schema(minimum = 1, maximum = 32767)] // i16::MAX
@@ -56,8 +56,16 @@ pub enum TimerAction {
     Nightlamp,
     /// set power state to given value
     PowerState { power: bool },
+    /// set color state to given value
+    ColorState {
+        #[schema(minimum = 0, maximum = 255)]
+        r: u8,
+        #[schema(minimum = 0, maximum = 255)]
+        g: u8,
+        #[schema(minimum = 0, maximum = 255)]
+        b: u8
+    },
     // TODO action for setting brightness
-    // TODO action for setting color
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.
@@ -129,6 +137,14 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                     timeday: timer.timeday.clone(),
                     function: Arc::new(move |govee_queue|
                         govee_queue.push_back(SetState::Power(power)))
+                });
+            },
+            TimerAction::ColorState { r, g, b } => {
+                generated_timers.push(SimpleTimer {
+                    description: "set color",
+                    timeday: timer.timeday.clone(),
+                    function: Arc::new(move |govee_queue|
+                        govee_queue.push_back(SetState::Color((r, g, b))))
                 });
             },
         }
