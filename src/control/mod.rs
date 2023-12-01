@@ -37,7 +37,7 @@ pub async fn main_loop() {
     // will be updated by timer::check_timers() to avoid matching timers more than once per minute
     let mut last_checked_time = TimeDay::now().shift_time(0, -1);
 
-    // "fire and forget" web server start
+    // start webserver ("fire and forget" instead of "await")
     tokio::spawn(web::start_server(
         Arc::clone(&function_queue),
         Arc::clone(&simple_timers)

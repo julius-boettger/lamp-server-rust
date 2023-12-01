@@ -7,23 +7,13 @@ use crate::control::{state, timer::*};
 use crate::util::{fn_queue, govee_api::{self, SetState}};
 use axum::{
     Json,
-    TypedHeader,
     http::StatusCode as Code,
     extract::{self, State},
-    headers::{Authorization, authorization::Basic}
 };
 
 type Response<T> = Result<T, (Code, &'static str)>;
 
-// TODO replace with middleware?
-/// require basic authorization with password equal to sha256 of govee api key (case insensitive)
-fn authorize(auth: Authorization<Basic>) -> Response<()> {
-    use constants::govee_secrets::API_KEY;
-    if !auth.0.password().eq_ignore_ascii_case(sha256::digest(API_KEY).as_str()) {
-        return Err((Code::UNAUTHORIZED, "password in basic authorization header is incorrect. expected sha256 hash of Govee API key (case insensitive)."));
-    }
-    Ok(())
-}
+// TODO authentication middleware with axum::middleware::from_fn
 
 #[utoipa::path(
     get,
@@ -41,10 +31,7 @@ fn authorize(auth: Authorization<Basic>) -> Response<()> {
     ),
     security(("authorization" = [])) // require auth
 )]
-async fn get_state(
-    TypedHeader(auth): TypedHeader<Authorization<Basic>>
-) -> Response<Json<govee_api::GetState>> {
-    authorize(auth)?;
+async fn get_state() -> Response<Json<govee_api::GetState>> {
     match govee_api::get_state().await {
         Ok(state) => Ok(Json(state)),
         _ => Err((Code::INTERNAL_SERVER_ERROR,
@@ -66,10 +53,8 @@ async fn get_state(
     security(("authorization" = [])) // require auth
 )]
 async fn get_clear_govee_queue(
-    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(mut function_queue): State<fn_queue::Queue>
 ) -> Response<&'static str> {
-    authorize(auth)?;
     let message = "queued clearing Govee API call queue, setting brightness and turning off";
     println!("{}", message);
     fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue| {
@@ -96,10 +81,8 @@ async fn get_clear_govee_queue(
     security(("authorization" = [])) // require auth
 )]
 async fn get_activate_nightlamp(
-    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(mut function_queue): State<fn_queue::Queue>
 ) -> Response<&'static str> {
-    authorize(auth)?;
     let message = "queued nightlamp activation";
     println!("{}", message);
     fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue|
@@ -122,10 +105,8 @@ async fn get_activate_nightlamp(
     security(("authorization" = [])) // require auth
 )]
 async fn get_timers(
-    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(timers): State<Timers>
 ) -> Response<Json<Vec<Timer>>> {
-    authorize(auth)?;
     Ok(Json(timers.lock().await.clone()))
 }
 
@@ -147,11 +128,9 @@ async fn get_timers(
     security(("authorization" = [])) // require auth
 )]
 async fn put_timers(
-    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(state): State<(Timers, SimpleTimers)>,
     extract::Json(new_timers): extract::Json<Vec<Timer>>
 ) -> Response<&'static str> {
-    authorize(auth)?;
 
     /// return given error message with status code UNPROCESSABLE_ENTITY if condition
     fn error_if(condition: bool, message: &'static str) -> Response<()> {
@@ -210,11 +189,9 @@ struct PowerState { power: bool }
     security(("authorization" = [])) // require auth
 )]
 async fn put_power(
-    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(mut function_queue): State<fn_queue::Queue>,
     extract::Json(powerstate): extract::Json<PowerState>
 ) -> Response<&'static str> {
-    authorize(auth)?;
     let setstate = SetState::Power(powerstate.power);
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
@@ -246,11 +223,9 @@ struct BrightnessState {
     security(("authorization" = [])) // require auth
 )]
 async fn put_brightness(
-    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(mut function_queue): State<fn_queue::Queue>,
     extract::Json(brightnessstate): extract::Json<BrightnessState>
 ) -> Response<&'static str> {
-    authorize(auth)?;
 
     if brightnessstate.brightness < 1 || brightnessstate.brightness > 100 {
         return Err((Code::UNPROCESSABLE_ENTITY, "brightness must be from 1 to 100"));
@@ -294,11 +269,9 @@ struct ColorState {
     security(("authorization" = [])) // require auth
 )]
 async fn put_color(
-    TypedHeader(auth): TypedHeader<Authorization<Basic>>,
     State(mut function_queue): State<fn_queue::Queue>,
     extract::Json(colorstate): extract::Json<ColorState>
 ) -> Response<&'static str> {
-    authorize(auth)?;
     let setstate = SetState::Color((colorstate.r, colorstate.g, colorstate.b));
     fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
@@ -315,6 +288,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
     use axum::{response::Redirect, routing::{get, put}};
     use utoipa::{OpenApi, openapi::security::{SecurityScheme, Http, HttpAuthScheme}};
 
+    // TODO correct for new authentication
     /// utility struct for utoipa to register basic http authorization.
     /// this is necessary for showing an "Authorize" button in swagger-ui.
     struct AuthHint;
@@ -365,7 +339,6 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
         // swagger ui
         .merge(SwaggerUi::new("/swagger-ui")
             .url("/openapi.json", ApiDoc::openapi()))
-
         // temporarily redirect root to swagger ui
         .route("/", get(|| async { Redirect::temporary("/swagger-ui") }))
 
@@ -387,11 +360,8 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
             .with_state((Arc::clone(&timers), Arc::clone(&simple_timers)))
     ;
 
-    // start server
     let address = std::net::SocketAddr::new(LOCALHOST, PORT);
     println!("WEB: starting server on http://{address} ...");
-    axum::Server::bind(&address)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(address).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }

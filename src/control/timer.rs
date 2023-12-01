@@ -52,6 +52,7 @@ pub enum TimerAction {
         #[schema(minimum = 1, maximum = 32767)] // i16::MAX
         nightlamp_min: u16
     }
+    // TODO action for nightlamp
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.
