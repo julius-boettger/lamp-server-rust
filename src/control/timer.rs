@@ -33,8 +33,7 @@ impl Timer {
 #[serde(tag = "type", content = "params")]
 pub enum TimerAction {
     /// alarm for waking up with sunrise.
-    /// sunrise finishes on `timeday` and then stays on for `stay_on_for_min` before turning off.
-    /// brightness will return to default before turning off.
+    /// sunrise finishes on `timeday`, stays on for `stay_on_for_min`, activates daylamp and turns off.
     /// nightlamp will be on for `nightlamp_min`,
     /// with `sleep_min` between the nightlamp turning off and the sunrise finishing.
     Sunrise {
@@ -117,16 +116,14 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                         );
                     })
                 });
-                // turn off later (and set default brightness before)
                 generated_timers.push(SimpleTimer {
-                    description: "turn off",
+                    description: "daylamp => turn off",
                     timeday: timer.timeday.shift_time(
                         0,
                         stay_on_for_min as i16
                     ),
                     function: Arc::new(|govee_queue| {
-                        use crate::constants::brightness::DAY;
-                        govee_queue.push_back(SetState::Brightness(DAY));
+                        state::daylamp(govee_queue);
                         govee_queue.push_back(SetState::Power(false));
                     })
                 });
