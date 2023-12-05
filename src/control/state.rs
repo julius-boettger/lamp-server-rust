@@ -10,10 +10,11 @@ pub fn nightlamp(govee_queue: &mut VecDeque<SetState>) {
     govee_queue.push_back(SetState::Color(NIGHTLAMP));
 }
 
-/// set color to pleasant orange
+/// set brightness to default for day and color to pleasant orange
 pub fn daylamp(govee_queue: &mut VecDeque<SetState>) {
     println!("activating daylamp...");
-    use constants::colors::DAYLAMP;
+    use constants::{brightness::DAY, colors::DAYLAMP};
+    govee_queue.push_back(SetState::Brightness(DAY));
     govee_queue.push_back(SetState::Color(DAYLAMP));
 }
 

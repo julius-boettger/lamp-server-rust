@@ -56,7 +56,7 @@ pub enum TimerAction {
     Reminder,
     /// set brightness to default for night and color to nice warm white.
     Nightlamp,
-    /// set color to pleasant orange.
+    /// set brightness to default for day and color to pleasant orange.
     Daylamp,
     /// set power state to given value
     PowerState { power: bool },

@@ -147,7 +147,7 @@ async fn get_activate_nightlamp(
     path = "/activate_daylamp",
     responses(
         (status = 200,
-        description = "Successfully queued setting color to pleasant orange."),
+        description = "Successfully queued setting brightness to default for day and color to pleasant orange."),
         (status = 400,
         description = "Request did not match expected structure."),
         (status = 401,
