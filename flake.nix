@@ -1,5 +1,5 @@
-# run with `nix develop [-c cargo run]`
-# if on WSL: spaces in absolute path to this directory are not allowed :)
+# run with `nix develop --unset PATH -c cargo run`
+# cargo fails if there are spaces in the absolute path to this directory :)
 {
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   outputs = inputs@{ self, ... }:
@@ -13,7 +13,6 @@
       nativeBuildInputs = with pkgs; [
         cargo
         pkg-config
-        openssl.dev
       ];
       # fix https://github.com/sfackler/rust-openssl/issues/1663
       PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
