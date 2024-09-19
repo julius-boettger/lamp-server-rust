@@ -1,4 +1,3 @@
 .cargo/
 target/
-Cargo.lock
 src/constants/govee_secrets.rs
