@@ -37,8 +37,8 @@ fn check_authorization(headers: HeaderMap) -> Response<()> {
         return Err((Code::BAD_REQUEST, "authorization header value is not of type bearer"));
     };
     // check for expected token
-    use constants::govee_secrets::API_KEY;
-    match token.eq_ignore_ascii_case(sha256::digest(API_KEY).as_str()) {
+    use crate::util::govee_secrets::api_key;
+    match token.eq_ignore_ascii_case(sha256::digest(api_key()).as_str()) {
         true  => Ok(()),
         false => Err((Code::UNAUTHORIZED, "expected sha256 hash of Govee API key as bearer token (case insensitive)"))
     }

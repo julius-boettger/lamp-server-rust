@@ -1,5 +1,6 @@
+use crate::constants;
 use crate::util::api_request::*;
-use crate::constants::{self, govee_secrets::*};
+use crate::util::govee_secrets::{api_key, device, model};
 
 #[derive(Debug, Clone, Copy)]
 pub enum SetState {
@@ -57,8 +58,8 @@ pub async fn set_state(state: SetState) -> bool {
     };
 
     let body = serde_json::json!({
-        "device": DEVICE,
-        "model": MODEL,
+        "device": device(),
+        "model": model(),
         "cmd": {
             "name": cmd_name,
             "value": cmd_value
@@ -68,7 +69,7 @@ pub async fn set_state(state: SetState) -> bool {
     let result = send(
         Method::Put(body),
         url.as_str(),
-        Some(vec![("Govee-API-Key", API_KEY), ("Content-Type", "application/json")])
+        Some(vec![("Govee-API-Key", &api_key()), ("Content-Type", "application/json")])
     ).await;
 
     match result {
@@ -80,11 +81,11 @@ pub async fn set_state(state: SetState) -> bool {
 
 /// dependent on govee api.
 pub async fn get_state() -> Result<GetState, ()> {
-    let url = format!("https://developer-api.govee.com/v1/devices/state?device={}&model={}", DEVICE, MODEL);
+    let url = format!("https://developer-api.govee.com/v1/devices/state?device={}&model={}", device(), model());
     let result = send(
         Method::Get,
         url.as_str(),
-        Some(vec![("Govee-API-Key", API_KEY)])
+        Some(vec![("Govee-API-Key", &api_key())])
     ).await;
 
     let Ok(json) = result else {

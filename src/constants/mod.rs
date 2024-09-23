@@ -1,7 +1,7 @@
-pub mod govee_secrets;
-
 /// timezone to use for timers
 pub const TIMEZONE: chrono_tz::Tz = chrono_tz::Europe::Berlin;
+/// in [`dirs_next::config_dir()`]
+pub const CONFIG_FILE_NAME: &str = "lamp-server.yaml";
 
 pub mod govee {
     use std::time::Duration;

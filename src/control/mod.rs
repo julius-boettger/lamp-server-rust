@@ -2,14 +2,12 @@ pub mod web;
 pub mod state;
 pub mod timer;
 
-/// never terminates
-pub async fn main_loop() {
-    use tokio::sync::Mutex;
-    use timer::SimpleTimers;
-    use std::{collections::VecDeque, sync::Arc, thread::sleep};
-    use crate::constants::{sunrise::*, govee::API_REQUEST_INTERVAL};
-    use crate::util::{fn_queue, timeday::TimeDay, govee_api::{self, SetState}};
+/// one time setup
+pub fn setup() {
+    use crate::util::govee_secrets;
+    use crate::constants::sunrise::*;
 
+    // check sunrise constants
     if govee_brightness::START >= govee_brightness::STOP {
         panic!("sunrise brightness has to start smaller than it stops");
     }
@@ -17,9 +15,25 @@ pub async fn main_loop() {
         panic!("sunrise color saturation has to start larger than it stops");
     }
 
+    // read govee secrets from config file
+    govee_secrets::INSTANCE.set(govee_secrets::from_file()).unwrap();
+    println!("SETUP: successfully read and parsed config file");
+
+    // check debug mode
     if cfg!(govee_debug) {
-        println!("GOVEE_DEBUG is enabled: not sending PUT requests to Govee API");
+        println!("SETUP: GOVEE_DEBUG is enabled => not sending PUT requests to Govee API");
     }
+}
+
+/// never terminates
+pub async fn main_loop() {
+    use tokio::sync::Mutex;
+    use timer::SimpleTimers;
+    use std::{collections::VecDeque, sync::Arc, thread::sleep};
+    use crate::constants::govee::API_REQUEST_INTERVAL;
+    use crate::util::{fn_queue, timeday::TimeDay, govee_api::{self, SetState}};
+
+    setup();
 
     // queue of `SetState`s of which the first one will be used for a Govee API call each iteration
     let mut govee_queue: VecDeque<SetState> = VecDeque::new();

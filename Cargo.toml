@@ -7,15 +7,17 @@ edition = "2021"
 hsv = "0.1" # hsv to rgb
 axum = "0.7" # webserver
 sha256 = "1.4" # calculate sha256 hash
+dirs-next = "2.0" # platform-specific standard paths
 itertools = "0.12" # better iterator handling
 reqwest = { version = "0.11", features = ["json"] } # make http requests
 tokio = { version = "1.34", features = ["rt-multi-thread", "macros"] } # async runtime
 # get current time with timezone
 chrono    = "0.4"
 chrono-tz = "0.8"
-# (de)serialize to/from json
+# (de)serialize to/from json/yaml
 serde      = "1.0"
 serde_json = "1.0"
+serde_yaml = "0.9"
 # swagger ui / openapi documentation support for axum
 utoipa = { version = "4.1", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "5.0", features = ["axum"] }
