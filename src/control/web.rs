@@ -228,8 +228,8 @@ async fn put_timers(
         match *timer.get_action() {
             TimerAction::Sunrise { duration_min, stay_on_for_min, sleep_min, nightlamp_min } => {
                 error_if(duration_min < 1, "action.params.duration_min has to be >= 1")?;
-                error_if(nightlamp_min < 1, "action.params.nightlamp_min has to be >= 1")?;
-                error_if(sleep_min < duration_min, "action.params.sleep_min has to be >= action.params.duration_min")?;
+                error_if(nightlamp_min > 0 && sleep_min < duration_min,
+                    "action.params.sleep_min has to be >= action.params.duration_min if action.params.nightlamp_min is > 0")?;
                 // limit for all: i16::MAX = 32767
                 error_if(sleep_min > 32767, "action.params.sleep_min has to be <= 32767")?;
                 error_if(duration_min > 32767, "action.params.duration_min has to be <= 32767")?;

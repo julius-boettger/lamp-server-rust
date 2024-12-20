@@ -44,11 +44,12 @@ pub enum TimerAction {
         #[schema(minimum = 0, maximum = 32767)] // i16::MAX
         stay_on_for_min: u16,
         /// time between nightlamp turning off and sunrise finishing.
-        /// has to be `>= duration_min`.
+        /// has to be `>= duration_min` if `nightlamp_min > 0`.
         #[schema(maximum = 32767)] // i16::MAX
         sleep_min: u16,
-        /// how long the nightlamp should stay on
-        #[schema(minimum = 1, maximum = 32767)] // i16::MAX
+        /// how long the nightlamp should stay on.
+        /// use 0 to disable.
+        #[schema(minimum = 0, maximum = 32767)] // i16::MAX
         nightlamp_min: u16
     },
     /// set bright orange color with high brightness to be active for about 20 seconds
@@ -85,24 +86,26 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
         if !timer.enable { continue; }
         match timer.action {
             TimerAction::Sunrise { duration_min, stay_on_for_min, sleep_min, nightlamp_min } => {
-                generated_timers.push(SimpleTimer {
-                    description: "nightlamp on",
-                    timeday: timer.timeday.shift_time(
-                        0,
-                        - (sleep_min as i16) - (nightlamp_min as i16)
-                    ),
-                    function: Arc::new(move |govee_queue|
-                        state::nightlamp(govee_queue))
-                });
-                generated_timers.push(SimpleTimer {
-                    description: "nightlamp off",
-                    timeday: timer.timeday.shift_time(
-                        0,
-                        - (sleep_min as i16)
-                    ),
-                    function: Arc::new(|govee_queue|
-                        govee_queue.push_back(SetState::Power(false)))
-                });
+                if nightlamp_min > 0 {
+                    generated_timers.push(SimpleTimer {
+                        description: "nightlamp on",
+                        timeday: timer.timeday.shift_time(
+                            0,
+                            - (sleep_min as i16) - (nightlamp_min as i16)
+                        ),
+                        function: Arc::new(move |govee_queue|
+                            state::nightlamp(govee_queue))
+                    });
+                    generated_timers.push(SimpleTimer {
+                        description: "nightlamp off",
+                        timeday: timer.timeday.shift_time(
+                            0,
+                            - (sleep_min as i16)
+                        ),
+                        function: Arc::new(|govee_queue|
+                            govee_queue.push_back(SetState::Power(false)))
+                    });
+                }
                 generated_timers.push(SimpleTimer {
                     description: "sunrise",
                     timeday: timer.timeday.shift_time(
