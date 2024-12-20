@@ -1,48 +1,31 @@
 {
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    systems.url = "github:nix-systems/default"; # can run on all systems
+  };
 
-  # can run on all systems
-  inputs.systems.url = "github:nix-systems/default";
-
-  outputs = inputs@{ self, ... }:
+  outputs = { self, nixpkgs, systems, ... }:
   let
-    eachSystem = inputs.nixpkgs.lib.genAttrs (import inputs.systems);
+    eachSystem = fn: nixpkgs.lib.genAttrs (import systems) (system: fn system (import nixpkgs {
+      inherit system;
+    }));
   in
   {
-    devShells = eachSystem (system:
-    let
-      pkgs = import inputs.nixpkgs { inherit system; };
-    in
-    {
-      default = pkgs.mkShell {
-        nativeBuildInputs = with pkgs; [
-          cargo
-          pkg-config
-        ];
-        # fix https://github.com/sfackler/rust-openssl/issues/1663
-        PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
-      };
-    });
-
-    packages = eachSystem (system:
-    let
-      pkgs = import inputs.nixpkgs { inherit system; };
-    in
-    {
+    packages = eachSystem (system: pkgs: rec {
+      default = lamp-server;
       lamp-server = pkgs.rustPlatform.buildRustPackage {
         name = "lamp-server";
         src = ./.;
         cargoLock.lockFile = ./Cargo.lock;
 
         nativeBuildInputs = [ pkgs.pkg-config ];
-        configurePhase = ''
-          runHook preConfigure
+              buildInputs = [ pkgs.openssl.dev ];
+      };
+    });
 
-          # fix https://github.com/sfackler/rust-openssl/issues/1663
-          export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig"
-
-          runHook postConfigure
-        '';
+    devShells = eachSystem (system: pkgs: {
+      default = pkgs.mkShell {
+        inherit (self.packages.${system}.default) nativeBuildInputs buildInputs;
       };
     });
   };
