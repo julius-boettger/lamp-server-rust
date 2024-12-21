@@ -19,7 +19,7 @@
         cargoLock.lockFile = ./Cargo.lock;
 
         nativeBuildInputs = [ pkgs.pkg-config ];
-              buildInputs = [ pkgs.openssl.dev ];
+              buildInputs = [ pkgs.openssl ];
       };
     });
 
