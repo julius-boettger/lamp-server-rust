@@ -24,8 +24,12 @@
     });
 
     devShells = eachSystem (system: pkgs: {
-      default = pkgs.mkShell {
+      default = let
         inherit (self.packages.${system}.default) nativeBuildInputs buildInputs;
+      in pkgs.mkShell {
+        buildInputs = buildInputs;
+        nativeBuildInputs = nativeBuildInputs ++ [ pkgs.cargo ];
+        RUSTFLAGS = "--cfg govee_debug";
       };
     });
   };
