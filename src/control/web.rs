@@ -416,7 +416,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
     struct ApiDoc;
 
     // higher level timers which will be converted and pushed to `simple_timers`
-    let timers: Timers = Arc::new(Mutex::new(vec![]));
+    let timers: Timers = Timer::new_timers();
 
     // configure routes
     let app = axum::Router::new()

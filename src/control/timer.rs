@@ -26,6 +26,9 @@ pub struct Timer {
 impl Timer {
     pub fn get_timeday(&self) -> &TimeDay { &self.timeday }
     pub fn get_action(&self) -> &TimerAction { &self.action }
+    pub fn new_timers() -> Timers {
+        Arc::new(Mutex::new(vec![]))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq, Eq, Hash)]
