@@ -17,7 +17,7 @@ pub fn setup() {
 
     // read govee secrets from config file
     govee_secrets::INSTANCE.set(govee_secrets::from_file()).unwrap();
-    println!("SETUP: successfully read and parsed config file");
+    println!("SETUP: successfully loaded config from file");
 
     // check debug mode
     if cfg!(govee_debug) {
