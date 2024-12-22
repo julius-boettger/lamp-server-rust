@@ -26,9 +26,6 @@ pub struct Timer {
 impl Timer {
     pub fn get_timeday(&self) -> &TimeDay { &self.timeday }
     pub fn get_action(&self) -> &TimerAction { &self.action }
-    pub fn new_timers() -> Timers {
-        Arc::new(Mutex::new(vec![]))
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq, Eq, Hash)]
@@ -77,6 +74,33 @@ pub enum TimerAction {
         #[schema(minimum = 0, maximum = 255)]
         b: u8
     },
+}
+
+/// read timers from [`crate::constants::DATA_FILE_NAME`] or return new empty timers
+pub fn new_timers() -> Timers {
+    let path = dirs_next::data_dir();
+    if let None = path {
+        println!("SETUP: couldn't get path to data dir for timer file, using empty timers...");
+        return Arc::new(Mutex::new(vec![]));
+    };
+    let mut path = path.unwrap();
+    path.push(crate::constants::DATA_FILE_NAME);
+
+    let content = std::fs::read_to_string(path);
+    if let Err(_) = content {
+        println!("SETUP: timer file doesn't exist, using empty timers...");
+        return Arc::new(Mutex::new(vec![]));
+    };
+
+    let timers = serde_json::from_str::<Vec<Timer>>(&content.unwrap());
+    if let Err(_) = timers {
+        println!("SETUP: couldn't parse existing timer file, using empty timers...");
+        return Arc::new(Mutex::new(vec![]));
+    };
+    let timers = timers.unwrap();
+    
+    println!("SETUP: successfully loaded {} timer(s) from file", timers.len());
+    Arc::new(Mutex::new(timers))
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.

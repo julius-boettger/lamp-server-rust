@@ -369,7 +369,7 @@ async fn put_color(
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
     use constants::net::*;
     use utoipa_swagger_ui::SwaggerUi;
-    use tokio::{net::TcpListener, sync::Mutex};
+    use tokio::net::TcpListener;
     use axum::{response::Redirect, routing::{get, put}};
     use utoipa::{OpenApi, openapi::security::{SecurityScheme, Http, HttpAuthScheme}};
 
@@ -417,7 +417,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
     struct ApiDoc;
 
     // higher level timers which will be converted and pushed to `simple_timers`
-    let timers: Timers = Timer::new_timers();
+    let timers: Timers = new_timers();
 
     // configure routes
     let app = axum::Router::new()
