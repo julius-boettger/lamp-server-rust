@@ -251,6 +251,7 @@ async fn put_timers(
     let (timers, simple_timers) = state;
     *timers.lock().await = new_timers;
     process_timers(&timers, &simple_timers).await;
+    write_timers_to_file(&timers).await;
     Ok("timers updated.")
 }
 

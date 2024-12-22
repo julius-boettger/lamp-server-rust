@@ -2,6 +2,8 @@
 pub const TIMEZONE: chrono_tz::Tz = chrono_tz::Europe::Berlin;
 /// in [`dirs_next::config_dir()`]
 pub const CONFIG_FILE_NAME: &str = "lamp-server.yaml";
+/// in [`dirs_next::data_dir()`]
+pub const DATA_FILE_NAME: &str = "lamp-server-state.json";
 
 pub mod govee {
     use std::time::Duration;

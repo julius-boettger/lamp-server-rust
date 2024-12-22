@@ -216,6 +216,22 @@ pub async fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &fn_
     *last_checked = now;
 }
 
+/// serialize `timers` as json and write it to [`crate::constants::DATA_FILE_NAME`]
+pub async fn write_timers_to_file(timers: &Timers) {
+    // build path
+    let path = dirs_next::data_dir();
+    if let None = path { return; }; // ignore if path can't be determined
+    let mut path = path.unwrap();
+    path.push(crate::constants::DATA_FILE_NAME);
+
+    let content = serde_json::to_string(&*timers.lock().await).unwrap();
+
+    // try to write file as a "fire and forget" as it's result is irrelevant here
+    tokio::spawn(async move {
+        let _ = tokio::fs::write(path, content).await;
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
