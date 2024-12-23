@@ -25,4 +25,4 @@ serde_json = "1.0"
 serde_yaml = "0.9"
 # swagger ui / openapi documentation support for axum
 utoipa = { version = "5.3", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "8.1", features = ["axum"] }
+utoipa-swagger-ui = { version = "8.1", features = ["axum", "vendored"] }
