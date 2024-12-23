@@ -31,8 +31,6 @@
         nativeBuildInputs = nativeBuildInputs ++ [ pkgs.cargo ];
         # fix rust-analyzer in vscode
         RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
-        # debug mode by default
-        RUSTFLAGS = "--cfg govee_debug";
       };
     });
   };

@@ -20,7 +20,7 @@ pub fn setup() {
     println!("SETUP: successfully loaded config from file");
 
     // check debug mode
-    if cfg!(govee_debug) {
+    if cfg!(feature = "govee_debug") {
         println!("SETUP: GOVEE_DEBUG is enabled => not sending PUT requests to Govee API");
     }
 }

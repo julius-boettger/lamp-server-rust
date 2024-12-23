@@ -28,12 +28,12 @@ pub struct GetState {
 /// limits brightness from 1 to 100.
 /// returns success.
 /// dependent on govee api.
-/// only prints state and waits a little instead of setting it if `cfg!(govee_debug)`.
+/// only prints state and waits a little instead of setting it if `cfg!(feature = "govee_debug")`.
 pub async fn set_state(state: SetState) -> bool {
 
     println!("setting state to {:?}", state);
 
-    if cfg!(govee_debug) {
+    if cfg!(feature = "govee_debug") {
         // emulate request by waiting a bit
         std::thread::sleep(constants::govee::AVG_SET_STATE_DURATION);
         return true;

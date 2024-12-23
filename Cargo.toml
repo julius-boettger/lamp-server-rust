@@ -3,6 +3,11 @@ name = "lamp-server"
 version = "1.0.0"
 edition = "2021"
 
+[features]
+# don't send PUT requests to govee api
+# use like `cargo run --features govee_debug`
+govee_debug = []
+
 [dependencies]
 hsv = "0.1" # hsv to rgb
 axum = "0.7" # webserver
