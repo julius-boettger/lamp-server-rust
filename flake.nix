@@ -18,8 +18,12 @@
         src = ./.;
         cargoLock.lockFile = ./Cargo.lock;
 
-        nativeBuildInputs = [ pkgs.pkg-config ];
-              buildInputs = [ pkgs.openssl ];
+        nativeBuildInputs = with pkgs; [
+          pkg-config # to find buildInputs
+        ];
+        buildInputs = with pkgs; [
+          openssl # required by reqwest
+        ];
       };
     });
 
