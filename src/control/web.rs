@@ -50,7 +50,7 @@ fn check_authorization(headers: HeaderMap) -> Response<()> {
     responses(
         (status = 200,
         description = "Successfully fetched current state of lamp.",
-        body = GetState),
+        body = govee_api::GetState),
         (status = 400,
         description = "Request did not match expected structure."),
         (status = 401,
