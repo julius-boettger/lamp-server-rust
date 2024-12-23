@@ -28,7 +28,10 @@
         inherit (self.packages.${system}.default) nativeBuildInputs buildInputs;
       in pkgs.mkShell {
         buildInputs = buildInputs;
-        nativeBuildInputs = nativeBuildInputs ++ [ pkgs.cargo ];
+        nativeBuildInputs = nativeBuildInputs ++ (with pkgs; [
+          cargo
+          cargo-edit # provides `cargo upgrade` for dependencies
+        ]);
         # fix rust-analyzer in vscode
         RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
       };
