@@ -76,8 +76,10 @@ pub enum TimerAction {
     },
 }
 
-/// read timers from [`crate::constants::DATA_FILE_NAME`] or return new empty timers
-pub fn new_timers() -> Timers {
+/// attempt to load timers from [`crate::constants::DATA_FILE_NAME`]
+/// and process them into simple timers.
+/// return new empty timers when running into problems.
+pub async fn load_timers(simple_timers: &SimpleTimers) -> Timers {
     let path = dirs_next::data_dir();
     if let None = path {
         println!("SETUP: couldn't get path to data dir for timer file, using empty timers...");
@@ -100,7 +102,9 @@ pub fn new_timers() -> Timers {
     let timers = timers.unwrap();
     
     println!("SETUP: successfully loaded {} timer(s) from file", timers.len());
-    Arc::new(Mutex::new(timers))
+    let timers = Arc::new(Mutex::new(timers));
+    process_timers(&timers, simple_timers).await;
+    timers
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.

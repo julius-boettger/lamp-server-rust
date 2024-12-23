@@ -417,7 +417,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
     struct ApiDoc;
 
     // higher level timers which will be converted and pushed to `simple_timers`
-    let timers: Timers = new_timers();
+    let timers: Timers = load_timers(&simple_timers).await;
 
     // configure routes
     let app = axum::Router::new()
