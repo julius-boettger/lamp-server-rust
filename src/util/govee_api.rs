@@ -74,7 +74,8 @@ pub async fn set_state(state: SetState) -> bool {
 
     match result {
         // true if status code is 200
-        Ok(json) => json["code"].as_u64().unwrap() == 200,
+        // use unwrap_or as just unwrap has failed before
+        Ok(json) => json["code"].as_u64().unwrap_or(0) == 200,
         _ => false
     }
 }
