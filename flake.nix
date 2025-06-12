@@ -34,6 +34,7 @@
         buildInputs = buildInputs;
         nativeBuildInputs = nativeBuildInputs ++ (with pkgs; [
           cargo
+          clippy
           cargo-edit # provides `cargo upgrade` for dependencies
         ]);
         # fix rust-analyzer in vscode
