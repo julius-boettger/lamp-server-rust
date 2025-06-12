@@ -26,14 +26,14 @@ pub fn from_file() -> Struct {
     path.push(constants::CONFIG_FILE_NAME);
 
     // read file contents
-    let yaml_config = std::fs::read_to_string(path.clone()).expect(format!(
-        "config file could not be read from {}.\n\
-        see the README for a template.\n", path.to_str().unwrap()
-    ).as_str());
+    let yaml_config = std::fs::read_to_string(path.clone()).unwrap_or_else( |_| panic!(
+        "config file could not be read from {}.\nsee the README for a template.\n",
+        path.to_str().unwrap()
+    ));
     
     // parse yaml string to struct
-    return serde_yaml::from_str(&yaml_config).expect(format!(
-        "config file at {} could not be parsed.\n\
-        see the README for a template.\n", path.to_str().unwrap()
-    ).as_str());
+    serde_yaml::from_str(&yaml_config).unwrap_or_else(|_| panic!(
+        "config file at {} could not be parsed.\nsee the README for a template.\n",
+        path.to_str().unwrap()
+    ))
 }

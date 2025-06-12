@@ -3,6 +3,7 @@ use serde::Deserialize;
 use itertools::Itertools;
 use utoipa::{IntoParams, ToSchema};
 use crate::constants;
+#[allow(clippy::wildcard_imports)]
 use crate::control::{state, timer::*};
 use crate::util::{fn_queue, govee_api::{self, SetState}};
 use axum::{
@@ -21,26 +22,30 @@ async fn validate_request(
     request: extract::Request,
     next: middleware::Next,
 ) -> Result<axum::response::Response, (Code, &'static str)> {
-    check_authorization(headers)?;
+    check_authorization(&headers)?;
     // evaluate and return original request
     Ok(next.run(request).await)
 }
 
-fn check_authorization(headers: HeaderMap) -> Response<()> {
+fn check_authorization(headers: &HeaderMap) -> Response<()> {
+    use crate::util::govee_secrets::api_key;
     let Some(value) = headers.get("authorization") else {
         return Err((Code::BAD_REQUEST, "authorization header is missing"));
     };
+
     let Ok(value) = value.to_str() else {
         return Err((Code::BAD_REQUEST, "authorization header value contains characters that are not visible ASCII"));
     };
+
     let Some(token) = value.strip_prefix("Bearer ") else {
         return Err((Code::BAD_REQUEST, "authorization header value is not of type bearer"));
     };
+
     // check for expected token
-    use crate::util::govee_secrets::api_key;
-    match token.eq_ignore_ascii_case(sha256::digest(api_key()).as_str()) {
-        true  => Ok(()),
-        false => Err((Code::UNAUTHORIZED, "expected sha256 hash of Govee API key as bearer token (case insensitive)"))
+    if token.eq_ignore_ascii_case(sha256::digest(api_key()).as_str()) {
+        Ok(())
+    } else {
+        Err((Code::UNAUTHORIZED, "expected sha256 hash of Govee API key as bearer token (case insensitive)"))
     }
 }
 
@@ -61,11 +66,10 @@ fn check_authorization(headers: HeaderMap) -> Response<()> {
     security(("authorization" = [])) // require auth
 )]
 async fn get_state() -> Response<Json<govee_api::GetState>> {
-    match govee_api::get_state().await {
-        Ok(state) => Ok(Json(state)),
-        _ => Err((Code::INTERNAL_SERVER_ERROR,
-                  "could not get state. likely because of Govee API rate limit."))
-    }
+    govee_api::get_state().await.map_or(
+        Err((Code::INTERNAL_SERVER_ERROR, "could not get state. likely because of Govee API rate limit.")),
+        |state| Ok(Json(state))
+    )
 }
 
 #[utoipa::path(
@@ -82,11 +86,11 @@ async fn get_state() -> Response<Json<govee_api::GetState>> {
     security(("authorization" = [])) // require auth
 )]
 async fn get_clear_govee_queue(
-    State(mut function_queue): State<fn_queue::Queue>
+    State(function_queue): State<fn_queue::Queue>
 ) -> Response<&'static str> {
     let message = "queued clearing Govee API call queue, setting brightness and turning off";
-    println!("{}", message);
-    fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue| {
+    println!("{message}");
+    fn_queue::enqueue(&function_queue, Arc::new(|govee_queue| {
         println!("{} elements in govee queue, clearing...", govee_queue.len());
         govee_queue.clear();
         println!("queueing setting default brightness and turning off...");
@@ -110,12 +114,11 @@ async fn get_clear_govee_queue(
     security(("authorization" = [])) // require auth
 )]
 async fn get_activate_reminder(
-    State(mut function_queue): State<fn_queue::Queue>
+    State(function_queue): State<fn_queue::Queue>
 ) -> Response<&'static str> {
     let message = "queued reminder activation";
-    println!("{}", message);
-    fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue|
-        state::reminder(govee_queue))).await;
+    println!("{message}");
+    fn_queue::enqueue(&function_queue, Arc::new(state::reminder)).await;
     Ok(message)
 }
 
@@ -133,12 +136,11 @@ async fn get_activate_reminder(
     security(("authorization" = [])) // require auth
 )]
 async fn get_activate_nightlamp(
-    State(mut function_queue): State<fn_queue::Queue>
+    State(function_queue): State<fn_queue::Queue>
 ) -> Response<&'static str> {
     let message = "queued nightlamp activation";
-    println!("{}", message);
-    fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue|
-        state::nightlamp(govee_queue))).await;
+    println!("{message}");
+    fn_queue::enqueue(&function_queue, Arc::new(state::nightlamp)).await;
     Ok(message)
 }
 
@@ -156,12 +158,11 @@ async fn get_activate_nightlamp(
     security(("authorization" = [])) // require auth
 )]
 async fn get_activate_daylamp(
-    State(mut function_queue): State<fn_queue::Queue>
+    State(function_queue): State<fn_queue::Queue>
 ) -> Response<&'static str> {
     let message = "queued daylamp activation";
-    println!("{}", message);
-    fn_queue::enqueue(&mut function_queue, Arc::new(|govee_queue|
-        state::daylamp(govee_queue))).await;
+    println!("{message}");
+    fn_queue::enqueue(&function_queue, Arc::new(state::daylamp)).await;
     Ok(message)
 }
 
@@ -208,10 +209,11 @@ async fn put_timers(
 ) -> Response<&'static str> {
 
     /// return given error message with status code UNPROCESSABLE_ENTITY if condition
-    fn error_if(condition: bool, message: &'static str) -> Response<()> {
-        match condition {
-            true  => Err((Code::UNPROCESSABLE_ENTITY, message)),
-            false => Ok(())
+    const fn error_if(condition: bool, message: &'static str) -> Response<()> {
+        if condition {
+            Err((Code::UNPROCESSABLE_ENTITY, message))
+        } else {
+            Ok(())
         }
     }
 
@@ -219,7 +221,7 @@ async fn put_timers(
     let new_timers = new_timers.into_iter().unique().collect_vec();
 
     // validate new timers
-    for timer in new_timers.iter() {
+    for timer in &new_timers {
         error_if(*timer.get_timeday().get_hour() > 23, "timeday.hour must be <= 23")?;
         error_if(*timer.get_timeday().get_minute() > 59, "timeday.minute must be <= 59")?;
         error_if(timer.get_timeday().get_days().is_empty(), "timeday.days must not be empty")?;
@@ -236,15 +238,11 @@ async fn put_timers(
                 error_if(nightlamp_min > 32767, "action.params.nightlamp_min has to be <= 32767")?;
                 error_if(stay_on_for_min > 32767, "action.params.stay_on_for_min has to be <= 32767")?;
             },
-            TimerAction::Reminder => (),
-            TimerAction::Nightlamp => (),
-            TimerAction::Daylamp => (),
-            TimerAction::PowerState { .. } => (),
             TimerAction::BrightnessState { brightness } => {
                 error_if(brightness < 1, "action.params.brightness has to be >= 1")?;
                 error_if(brightness > 100, "action.params.brightness has to be <= 100")?;
             },
-            TimerAction::ColorState { .. } => (),
+            _ => (),
         }
     }
 
@@ -274,14 +272,14 @@ struct PowerState { power: bool }
     security(("authorization" = [])) // require auth
 )]
 async fn put_power(
-    State(mut function_queue): State<fn_queue::Queue>,
+    State(function_queue): State<fn_queue::Queue>,
     extract::Json(powerstate): extract::Json<PowerState>
 ) -> Response<&'static str> {
     let setstate = SetState::Power(powerstate.power);
-    fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
+    fn_queue::enqueue(&function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
     })).await;
-    println!("queued {:?}", setstate);
+    println!("queued {setstate:?}");
     Ok("queued requested state")
 }
 
@@ -308,7 +306,7 @@ struct BrightnessState {
     security(("authorization" = [])) // require auth
 )]
 async fn put_brightness(
-    State(mut function_queue): State<fn_queue::Queue>,
+    State(function_queue): State<fn_queue::Queue>,
     extract::Json(brightnessstate): extract::Json<BrightnessState>
 ) -> Response<&'static str> {
 
@@ -317,11 +315,11 @@ async fn put_brightness(
     }
 
     let setstate = SetState::Brightness(brightnessstate.brightness);
-    fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
+    fn_queue::enqueue(&function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
     })).await;
 
-    println!("queued {:?}", setstate);
+    println!("queued {setstate:?}");
     Ok("queued requested state")
 }
 
@@ -354,20 +352,20 @@ struct ColorState {
     security(("authorization" = [])) // require auth
 )]
 async fn put_color(
-    State(mut function_queue): State<fn_queue::Queue>,
+    State(function_queue): State<fn_queue::Queue>,
     extract::Json(colorstate): extract::Json<ColorState>
 ) -> Response<&'static str> {
     let setstate = SetState::Color((colorstate.r, colorstate.g, colorstate.b));
-    fn_queue::enqueue(&mut function_queue, Arc::new(move |govee_queue| {
+    fn_queue::enqueue(&function_queue, Arc::new(move |govee_queue| {
         govee_queue.push_back(setstate);
     })).await;
-    println!("queued {:?}", setstate);
+    println!("queued {setstate:?}");
     Ok("queued requested state")
 }
 
 /// start webserver. never terminates.
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
-    use constants::net::*;
+    use constants::net::{LOCALHOST, PORT};
     use utoipa_swagger_ui::SwaggerUi;
     use tokio::net::TcpListener;
     use axum::{response::Redirect, routing::{get, put}};
@@ -382,7 +380,7 @@ pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: Simple
                 components.add_security_scheme(
                     "authorization",
                     SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer))
-                )
+                );
             }
         }
     }

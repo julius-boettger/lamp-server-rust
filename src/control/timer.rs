@@ -8,10 +8,11 @@ use crate::util::{govee_api::SetState, timeday::TimeDay, fn_queue};
 pub type SimpleTimers = Arc<Mutex<Vec<SimpleTimer>>>;
 pub type Timers = Arc<Mutex<Vec<Timer>>>;
 
+#[allow(clippy::module_name_repetitions)]
 pub struct SimpleTimer {
     timeday: TimeDay,
     description: &'static str,
-    /// take govee_queue as argument
+    /// take `govee_queue` as argument
     function: fn_queue::Element
 }
 
@@ -24,13 +25,14 @@ pub struct Timer {
     action: TimerAction
 }
 impl Timer {
-    pub fn get_timeday(&self) -> &TimeDay { &self.timeday }
-    pub fn get_action(&self) -> &TimerAction { &self.action }
+    pub const fn get_timeday(&self) -> &TimeDay { &self.timeday }
+    pub const fn get_action(&self) -> &TimerAction { &self.action }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq, Eq, Hash)]
 // results in { "type": "Sunrise", "params": { "duration_min": ... }}
 #[serde(tag = "type", content = "params")]
+#[allow(clippy::module_name_repetitions)]
 pub enum TimerAction {
     /// alarm for waking up with sunrise.
     /// sunrise finishes on `timeday`, stays on for `stay_on_for_min`, activates daylamp and turns off.
@@ -81,7 +83,7 @@ pub enum TimerAction {
 /// return new empty timers when running into problems.
 pub async fn load_timers(simple_timers: &SimpleTimers) -> Timers {
     let path = dirs_next::data_dir();
-    if let None = path {
+    if path.is_none() {
         println!("SETUP: couldn't get path to data dir for timer file, using empty timers...");
         return Arc::new(Mutex::new(vec![]));
     };
@@ -89,13 +91,13 @@ pub async fn load_timers(simple_timers: &SimpleTimers) -> Timers {
     path.push(crate::constants::DATA_FILE_NAME);
 
     let content = std::fs::read_to_string(path);
-    if let Err(_) = content {
+    if content.is_err() {
         println!("SETUP: timer file doesn't exist, using empty timers...");
         return Arc::new(Mutex::new(vec![]));
     };
 
     let timers = serde_json::from_str::<Vec<Timer>>(&content.unwrap());
-    if let Err(_) = timers {
+    if timers.is_err() {
         println!("SETUP: couldn't parse existing timer file, using empty timers...");
         return Arc::new(Mutex::new(vec![]));
     };
@@ -108,6 +110,7 @@ pub async fn load_timers(simple_timers: &SimpleTimers) -> Timers {
 }
 
 /// convert `Timer`s to `SimpleTimer`s and save them to `simple_timers`.
+#[allow(clippy::too_many_lines)]
 pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
     let mut generated_timers: Vec<SimpleTimer> = vec![];
 
@@ -120,15 +123,16 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                 if nightlamp_min > 0 {
                     generated_timers.push(SimpleTimer {
                         description: "nightlamp on",
+                        #[allow(clippy::cast_possible_wrap)]
                         timeday: timer.timeday.shift_time(
                             0,
                             - (sleep_min as i16) - (nightlamp_min as i16)
                         ),
-                        function: Arc::new(move |govee_queue|
-                            state::nightlamp(govee_queue))
+                        function: Arc::new(state::nightlamp)
                     });
                     generated_timers.push(SimpleTimer {
                         description: "nightlamp off",
+                        #[allow(clippy::cast_possible_wrap)]
                         timeday: timer.timeday.shift_time(
                             0,
                             - (sleep_min as i16)
@@ -139,6 +143,7 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                 }
                 generated_timers.push(SimpleTimer {
                     description: "sunrise",
+                    #[allow(clippy::cast_possible_wrap)]
                     timeday: timer.timeday.shift_time(
                         0,
                         - (duration_min as i16)
@@ -146,12 +151,13 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                     function: Arc::new(move |govee_queue| {
                         state::sunrise(
                             govee_queue,
-                            Duration::from_secs((duration_min as u64) * 60)
+                            Duration::from_secs(u64::from(duration_min) * 60)
                         );
                     })
                 });
                 generated_timers.push(SimpleTimer {
                     description: "daylamp => turn off",
+                    #[allow(clippy::cast_possible_wrap)]
                     timeday: timer.timeday.shift_time(
                         0,
                         stay_on_for_min as i16
@@ -166,24 +172,21 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
                 generated_timers.push(SimpleTimer {
                     description: "reminder",
                     timeday: timer.timeday.clone(),
-                    function: Arc::new(move |govee_queue|
-                        state::reminder(govee_queue))
+                    function: Arc::new(state::reminder)
                 });
             },
             TimerAction::Nightlamp => {
                 generated_timers.push(SimpleTimer {
                     description: "nightlamp on",
                     timeday: timer.timeday.clone(),
-                    function: Arc::new(move |govee_queue|
-                        state::nightlamp(govee_queue))
+                    function: Arc::new(state::nightlamp)
                 });
             },
             TimerAction::Daylamp => {
                 generated_timers.push(SimpleTimer {
                     description: "daylamp on",
                     timeday: timer.timeday.clone(),
-                    function: Arc::new(move |govee_queue|
-                        state::daylamp(govee_queue))
+                    function: Arc::new(state::daylamp)
                 });
             },
             TimerAction::PowerState { power } => {
@@ -214,8 +217,11 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
     }
 
     println!("updated timers with {} generated simple timer(s) from {} complex timer(s)", generated_timers.len(), timers.len());
-    if generated_timers.len() > 0 {
-        for timer in generated_timers.iter() {
+    // free lock when not needed anymore
+    drop(timers);
+
+    if !generated_timers.is_empty() {
+        for timer in &generated_timers {
             println!("{}: {}", timer.timeday, timer.description);
         }
     }
@@ -225,18 +231,19 @@ pub async fn process_timers(timers: &Timers, simple_timers: &SimpleTimers) {
 
 /// if a timer matches the current date/time: push its function to the function queue.
 /// update `last_checked` with the current time if timers have been checked.
-pub async fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &fn_queue::Queue, last_checked: &mut TimeDay) {
+pub async fn check_timers(simple_timers: &SimpleTimers, function_queue: &fn_queue::Queue, last_checked: &mut TimeDay) {
     let now = TimeDay::now();
     // if timers have already been checked this minute
     if now == *last_checked {
         return;
     }
 
+    #[allow(clippy::significant_drop_in_scrutinee)]
     for timer in simple_timers.lock().await.iter() {
         if timer.timeday.get_days().contains(&now.get_days()[0])
         && timer.timeday.get_hour() == now.get_hour()
         && timer.timeday.get_minute() == now.get_minute() {
-            fn_queue::enqueue(&mut function_queue, Arc::clone(&timer.function)).await;
+            fn_queue::enqueue(function_queue, Arc::clone(&timer.function)).await;
             println!("matched timer for {}, calling function...", timer.timeday);
         }
     }
@@ -248,7 +255,7 @@ pub async fn check_timers(simple_timers: &SimpleTimers, mut function_queue: &fn_
 pub async fn write_timers_to_file(timers: &Timers) {
     // build path
     let path = dirs_next::data_dir();
-    if let None = path { return; }; // ignore if path can't be determined
+    if path.is_none() { return; }; // ignore if path can't be determined
     let mut path = path.unwrap();
     path.push(crate::constants::DATA_FILE_NAME);
 
@@ -266,6 +273,7 @@ mod tests {
     use tokio::test; // async tests
 
     #[test]
+    #[allow(clippy::significant_drop_tightening)]
     async fn sunrise_timer_processing() {
         let simple_timers: SimpleTimers = Arc::new(Mutex::new(vec![]));
         let timers: Timers = Arc::new(Mutex::new(vec![Timer {

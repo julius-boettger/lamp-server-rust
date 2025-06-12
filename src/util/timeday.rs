@@ -23,7 +23,7 @@ pub struct TimeDay {
 impl TimeDay {
     /// panics if at least one value is out of range. see setters for ranges.
     pub fn new(hour: u8, minute: u8, days: Vec<u8>) -> Self {
-        let mut instance = TimeDay { hour: 0, minute: 0, days: vec![] };
+        let mut instance = Self { hour: 0, minute: 0, days: vec![] };
         instance.set_hour(hour);
         instance.set_minute(minute);
         instance.set_days(days);
@@ -37,15 +37,15 @@ impl TimeDay {
 
         let now = Utc::now().with_timezone(&TIMEZONE);
         Self::new(
-            now.hour() as u8,
-            now.minute() as u8,
-            vec![now.weekday().num_days_from_monday() as u8]
+            now.hour().try_into().unwrap(),
+            now.minute().try_into().unwrap(),
+            vec![now.weekday().num_days_from_monday().try_into().unwrap()]
         )
     }
 
-    pub fn get_hour(&self) -> &u8 { &self.hour }
-    pub fn get_minute(&self) -> &u8 { &self.minute }
-    pub fn get_days(&self) -> &Vec<u8> { &self.days }
+    pub const fn get_hour(&self) -> &u8 { &self.hour }
+    pub const fn get_minute(&self) -> &u8 { &self.minute }
+    pub const fn get_days(&self) -> &Vec<u8> { &self.days }
 
     /// can shift in both forwards and backwards in time
     pub fn shift_time(&self, hour_shift: i16, minute_shift: i16) -> Self {
@@ -72,22 +72,18 @@ impl TimeDay {
         let hour = total_minutes / 60;
         let minute = total_minutes - (hour * 60);
 
-        Self::new(hour as u8, minute as u8, days)
+        Self::new(hour.try_into().unwrap(), minute.try_into().unwrap(), days)
     }
 
     /// 0 to 23. panics if value is out of range.
     fn set_hour(&mut self, hour: u8) {
-        if hour > 23 {
-            panic!("hour has to be <= 23, was {:?}", hour);
-        }
+        assert!(hour <= 23, "hour has to be <= 23, was {hour:?}");
         self.hour = hour;
     }
 
     /// 0 to 59. panics if value is out of range.
     fn set_minute(&mut self, minute: u8) {
-        if minute > 59 {
-            panic!("minute has to be <= 59, was {:?}", minute);
-        }
+        assert!(minute <= 59, "minute has to be <= 59, was {minute:?}");
         self.minute = minute;
     }
 
@@ -101,15 +97,9 @@ impl TimeDay {
     /// 5 - saturday <br>
     /// 6 - sunday <br>
     fn set_days(&mut self, days: Vec<u8>) {
-        if days.is_empty() {
-            panic!("days must not be empty");
-        }
-        if days.len() > 7 {
-            panic!("days must have <= 7 elements");
-        }
-        if days.iter().any(|&d| d > 6) {
-            panic!("every day has to be <= 6, days were {:?}", days);
-        }
+        assert!(!days.is_empty(), "days must not be empty");
+        assert!(days.len() <= 7, "days must have <= 7 elements");
+        assert!(days.iter().any(|&d| d <= 6), "every day has to be <= 6, days were {days:?}");
         self.days = days.into_iter().unique().sorted().collect_vec();
     }
 }

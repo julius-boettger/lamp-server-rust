@@ -1,5 +1,5 @@
 use crate::constants;
-use crate::util::api_request::*;
+use crate::util::api_request::{Method, send};
 use crate::util::govee_secrets::{api_key, device, model};
 
 #[derive(Debug, Clone, Copy)]
@@ -31,7 +31,7 @@ pub struct GetState {
 /// only prints state and waits a little instead of setting it if `cfg!(feature = "govee_debug")`.
 pub async fn set_state(state: SetState) -> bool {
 
-    println!("setting state to {:?}", state);
+    println!("setting state to {state:?}");
 
     if cfg!(feature = "govee_debug") {
         // emulate request by waiting a bit
@@ -72,12 +72,7 @@ pub async fn set_state(state: SetState) -> bool {
         Some(vec![("Govee-API-Key", &api_key()), ("Content-Type", "application/json")])
     ).await;
 
-    match result {
-        // true if status code is 200
-        // use unwrap_or as just unwrap has failed before
-        Ok(json) => json["code"].as_u64().unwrap_or(0) == 200,
-        _ => false
-    }
+    result.map_or(false, |json| json["code"].as_u64().unwrap_or(0) == 200)
 }
 
 /// dependent on govee api.
@@ -104,6 +99,6 @@ pub async fn get_state() -> Result<GetState, ()> {
         power: data[1]["powerState"].as_str().unwrap() == "on"
     };
 
-    println!("got state {:?}", state);
+    println!("got state {state:?}");
     Ok(state)
 }
