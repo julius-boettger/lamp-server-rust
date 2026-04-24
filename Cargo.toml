@@ -10,11 +10,11 @@ govee_debug = []
 
 [dependencies]
 hsv = "0.1" # hsv to rgb
-axum = "0.7" # webserver
+axum = "0.8" # webserver
 sha256 = "1.6" # calculate sha256 hash
 dirs-next = "2.0" # platform-specific standard paths
-itertools = "0.13" # better iterator handling
-reqwest = { version = "0.12", features = ["json"] } # make http requests
+itertools = "0.14" # better iterator handling
+reqwest = { version = "0.13", features = ["json"] } # make http requests
 tokio = { version = "1.52", features = ["rt-multi-thread", "macros"] } # async runtime
 # get current time with timezone
 chrono    = "0.4"
@@ -25,4 +25,4 @@ serde_json = "1.0"
 serde_yaml = "0.9"
 # swagger ui / openapi documentation support for axum
 utoipa = { version = "5.4", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "8.1", features = ["axum", "vendored"] }
+utoipa-swagger-ui = { version = "9.0", features = ["axum", "vendored"] }
