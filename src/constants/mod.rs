@@ -48,6 +48,6 @@ pub mod sunrise {
 
 pub mod net {
     use std::net::{IpAddr, Ipv4Addr};
-    pub const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+    pub const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
     pub const PORT: u16 = 9000;
 }

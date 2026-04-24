@@ -86,7 +86,7 @@ pub async fn load_timers(simple_timers: &SimpleTimers) -> Timers {
     if path.is_none() {
         println!("SETUP: couldn't get path to data dir for timer file, using empty timers...");
         return Arc::new(Mutex::new(vec![]));
-    };
+    }
     let mut path = path.unwrap();
     path.push(crate::constants::DATA_FILE_NAME);
 
@@ -94,13 +94,13 @@ pub async fn load_timers(simple_timers: &SimpleTimers) -> Timers {
     if content.is_err() {
         println!("SETUP: timer file doesn't exist, using empty timers...");
         return Arc::new(Mutex::new(vec![]));
-    };
+    }
 
     let timers = serde_json::from_str::<Vec<Timer>>(&content.unwrap());
     if timers.is_err() {
         println!("SETUP: couldn't parse existing timer file, using empty timers...");
         return Arc::new(Mutex::new(vec![]));
-    };
+    }
     let timers = timers.unwrap();
     
     println!("SETUP: successfully loaded {} timer(s) from file", timers.len());
@@ -255,7 +255,7 @@ pub async fn check_timers(simple_timers: &SimpleTimers, function_queue: &fn_queu
 pub async fn write_timers_to_file(timers: &Timers) {
     // build path
     let path = dirs_next::data_dir();
-    if path.is_none() { return; }; // ignore if path can't be determined
+    if path.is_none() { return; } // ignore if path can't be determined
     let mut path = path.unwrap();
     path.push(crate::constants::DATA_FILE_NAME);
 

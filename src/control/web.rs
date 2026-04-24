@@ -208,7 +208,7 @@ async fn put_timers(
     extract::Json(new_timers): extract::Json<Vec<Timer>>
 ) -> Response<&'static str> {
 
-    /// return given error message with status code UNPROCESSABLE_ENTITY if condition
+    /// return given error message with status code `UNPROCESSABLE_ENTITY` if condition
     const fn error_if(condition: bool, message: &'static str) -> Response<()> {
         if condition {
             Err((Code::UNPROCESSABLE_ENTITY, message))
@@ -364,6 +364,7 @@ async fn put_color(
 }
 
 /// start webserver. never terminates.
+#[allow(clippy::needless_for_each)] // from inside OpenApi derive
 pub async fn start_server(function_queue: fn_queue::Queue, simple_timers: SimpleTimers) {
     use constants::net::{LOCALHOST, PORT};
     use utoipa_swagger_ui::SwaggerUi;
